@@ -1,0 +1,91 @@
+# ===========================================
+# Docker Ignore File
+# ===========================================
+
+# Dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+.next
+out
+build
+dist
+
+# Testing
+coverage
+.nyc_output
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env*.local
+.env.development
+.env.test
+
+# Logs
+logs
+*.log
+dev.log
+server.log
+
+# Debug
+.pnp.*
+.yarn
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.docker
+.dockerignore
+
+# Documentation
+README.md
+CHANGELOG.md
+LICENSE
+
+# Test files
+**/__tests__/**
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Misc
+*.pem
+*.tgz
+.eslintcache
+.tsbuildinfo
+
+# Examples
+examples/
+
+# Scripts (not needed in production)
+scripts/
+
+# Upload folder (will be mounted as volume)
+# public/uploads
+
+# Database (will be mounted as volume)
+# db/*.db
+# db/*.db-journal
+
+# Temporary files
+tmp/
+temp/
+*.tmp

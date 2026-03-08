@@ -1,0 +1,467 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== USER & AUTH ====================
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  password      String
+  fullName      String?
+  avatarUrl     String?
+  role          String     @default("editor") // admin, editor
+  isActive      Boolean    @default(true)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  // Relations
+  news          News[]
+  announcements Announcement[]
+  documents     Document[]
+  uploadLogs    UploadLog[]
+  
+  @@map("users")
+}
+
+// ==================== KONTEN ====================
+
+// News / Berita
+model News {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  excerpt       String?
+  content       String   // Rich text HTML
+  imageUrl      String?
+  authorId      String?
+  published     Boolean  @default(false)
+  publishedAt   DateTime?
+  viewCount     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  author        User?    @relation(fields: [authorId], references: [id])
+  
+  @@map("news")
+}
+
+// Pengumuman
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   // Rich text HTML
+  authorId    String?
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  expireAt    DateTime?
+  priority    String   @default("normal") // normal, high, urgent
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  author      User?    @relation(fields: [authorId], references: [id])
+  
+  @@map("announcements")
+}
+
+// ==================== MEDIA ====================
+
+// Album
+model Album {
+  id            String         @id @default(cuid())
+  title         String
+  description   String?
+  coverImageUrl String?
+  orderIndex    Int            @default(0)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // Relations
+  galleryImages GalleryImage[]
+  
+  @@map("albums")
+}
+
+// Gallery Images
+model GalleryImage {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String
+  category    String   @default("Kegiatan")
+  albumId     String?
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  album       Album?   @relation(fields: [albumId], references: [id])
+  
+  @@map("gallery_images")
+}
+
+// Slideshow
+model Slideshow {
+  id          String   @id @default(cuid())
+  title       String
+  subtitle    String?
+  imageUrl    String
+  linkUrl     String?
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("slideshows")
+}
+
+// ==================== DOKUMEN ====================
+
+// Document Categories
+model DocumentCategory {
+  id          String     @id @default(cuid())
+  name        String
+  slug        String     @unique
+  description String?
+  icon        String?
+  orderIndex  Int        @default(0)
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  // Relations
+  documents   Document[]
+  
+  @@map("document_categories")
+}
+
+// Documents
+model Document {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  fileUrl     String?
+  category    String           @default("publik") // publik, universitas, akreditasi, eksternal, bpm, spmi, sop
+  categoryId  String?
+  published   Boolean          @default(true)
+  authorId    String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  // Relations
+  categoryRef DocumentCategory? @relation(fields: [categoryId], references: [id])
+  author      User?             @relation(fields: [authorId], references: [id])
+  
+  @@map("documents")
+}
+
+// ==================== AKREDITASI ====================
+
+// Accreditation Categories
+model AccreditationCategory {
+  id          String            @id @default(cuid())
+  name        String
+  slug        String            @unique
+  description String?
+  icon        String?
+  orderIndex  Int               @default(0)
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  
+  // Relations
+  accreditations AccreditationData[]
+  
+  @@map("accreditation_categories")
+}
+
+// Accreditation Data
+model AccreditationData {
+  id                  String              @id @default(cuid())
+  title               String
+  description         String?
+  category            String              @default("nasional") // nasional, internasional
+  categoryId          String?
+  accreditationBody   String              @default("ban-pt") // ban-pt, lam-teknik, lam-infokom, lamemba, lamspak
+  accreditationStatus String?             // B, Baik, Baik Sekali, A, etc.
+  certificateUrl      String?
+  imageUrl            String?
+  validUntil          DateTime?
+  published           Boolean             @default(true)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  
+  // Relations
+  categoryRef         AccreditationCategory? @relation(fields: [categoryId], references: [id])
+  
+  @@map("accreditation_data")
+}
+
+// Faculties
+model Faculty {
+  id          String           @id @default(cuid())
+  name        String
+  code        String?
+  description String?
+  deanName    String?
+  orderIndex  Int              @default(0)
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  // Relations
+  studyPrograms StudyProgram[]
+  
+  @@map("faculties")
+}
+
+// Study Programs
+model StudyProgram {
+  id                  String   @id @default(cuid())
+  name                String
+  code                String?
+  facultyId           String?
+  degreeLevel         String?  @default("s1") // d3, s1, s2, s3
+  description         String?
+  headName            String?
+  accreditationStatus String?
+  accreditationBody   String?
+  orderIndex          Int      @default(0)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // Relations
+  faculty             Faculty? @relation(fields: [facultyId], references: [id])
+  
+  @@map("study_programs")
+}
+
+// ==================== PROFIL ====================
+
+// Vision & Mission
+model VisionMission {
+  id        String   @id @default(cuid())
+  vision    String
+  mission   String
+  goals     String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  
+  @@map("vision_mission")
+}
+
+// About Us
+model AboutUs {
+  id        String   @id @default(cuid())
+  content   String   // Rich text HTML
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  
+  @@map("about_us")
+}
+
+// Organization Structure
+model OrganizationStructure {
+  id        String   @id @default(cuid())
+  name      String
+  position  String
+  photoUrl  String?
+  orderIndex Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("organization_structure")
+}
+
+// Statistics
+model Statistic {
+  id        String   @id @default(cuid())
+  icon      String?
+  value     String
+  label     String
+  orderIndex Int     @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("statistics")
+}
+
+// ==================== WEBSITE ====================
+
+// Menu Items
+model MenuItem {
+  id        String    @id @default(cuid())
+  title     String
+  url       String?
+  icon      String?
+  parentId  String?
+  orderIndex Int      @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  // Self-relation for submenus
+  parent    MenuItem?  @relation("SubMenu", fields: [parentId], references: [id])
+  children  MenuItem[] @relation("SubMenu")
+  
+  @@map("menu_items")
+}
+
+// Quick Links (existing, updated)
+model QuickLink {
+  id        String   @id @default(cuid())
+  title     String
+  url       String
+  icon      String
+  orderIndex Int     @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("quick_links")
+}
+
+// Homepage Quote
+model HomepageQuote {
+  id          String   @id @default(cuid())
+  quoteText   String
+  authorName  String?
+  authorTitle String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("homepage_quotes")
+}
+
+// Website Identity
+model WebsiteIdentity {
+  id              String   @id @default(cuid())
+  siteName        String?
+  siteTagline     String?
+  logoUrl         String?
+  faviconUrl      String?
+  contactEmail    String?
+  contactPhone    String?
+  contactAddress  String?
+  operationalHours String?
+  googleMapsUrl   String?
+  facebookUrl     String?
+  instagramUrl    String?
+  twitterUrl      String?
+  youtubeUrl      String?
+  linkedinUrl     String?
+  footerText      String?
+  updatedAt       DateTime @updatedAt
+  updatedBy       String?
+  
+  @@map("website_identity")
+}
+
+// Static Pages
+model StaticPage {
+  id           String   @id @default(cuid())
+  title        String
+  slug         String   @unique
+  description  String?
+  content      String   // Rich text HTML
+  icon         String?
+  menuCategory String?
+  parentMenu   String?  // Parent menu identifier: "profil", "layanan", "dokumen", "akreditasi"
+  showInMenu   Boolean  @default(false)  // Whether to show as submenu
+  orderIndex   Int      @default(0)
+  published    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("static_pages")
+}
+
+// ==================== SISTEM ====================
+
+// Contact Messages
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@map("contact_messages")
+}
+
+// Admin Settings
+model AdminSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   // JSON string for complex values
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+  
+  @@map("admin_settings")
+}
+
+// Upload Logs
+model UploadLog {
+  id           String   @id @default(cuid())
+  userId       String?
+  userEmail    String?
+  action       String   // upload, delete
+  bucket       String?
+  filename     String?
+  originalName String?
+  fileUrl      String?
+  fileSize     Int?
+  createdAt    DateTime @default(now())
+  
+  // Relations
+  user         User?    @relation(fields: [userId], references: [id])
+  
+  @@map("upload_logs")
+}
+
+// Page Views (for statistics)
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  referrer  String?
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+  
+  @@map("page_views")
+}
+
+// ==================== LEGACY ====================
+
+// Accreditation (legacy - for chart data)
+model Accreditation {
+  id        String   @id @default(cuid())
+  name      String
+  category  String
+  count     Int      @default(0)
+  programs  String
+  color     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("accreditations")
+}
