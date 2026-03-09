@@ -21,7 +21,7 @@ services:
     
     # Port Mapping
     ports:
-      - "2018:2018"
+      - "2020:2020"
     
     # Environment Variables
     environment:
@@ -42,7 +42,7 @@ services:
     
     # Health Check
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2018/api/identity"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2020/api/identity"]
       interval: 30s
       timeout: 10s
       retries: 3
