@@ -3,6 +3,8 @@
 # IP Binding: 10.8.0.1
 # ===========================================
 
+version: '3.8'
+
 services:
   # ===========================================
   # Next.js Application
@@ -17,7 +19,7 @@ services:
     # Network Configuration - IP Binding 10.8.0.1
     networks:
       bpm_network:
-        ipv4_address: 192.168.1.12
+        ipv4_address: 10.8.0.1
     
     # Port Mapping
     ports:
@@ -64,8 +66,8 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 192.168.1.0/24
-          gateway: 192.168.1.12
+        - subnet: 10.8.0.0/24
+          gateway: 10.8.0.254
 
 # ===========================================
 # Volume Configuration (Optional - for named volumes)
