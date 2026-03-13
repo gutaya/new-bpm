@@ -21,6 +21,7 @@ import {
   Loader2,
   ImagePlus,
   ExternalLink,
+  Layout,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -29,8 +30,12 @@ interface WebsiteIdentity {
   id: string;
   siteName: string | null;
   siteTagline: string | null;
+  siteDescription: string | null;
   logoUrl: string | null;
   faviconUrl: string | null;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  heroDescription: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
   contactAddress: string | null;
@@ -55,8 +60,12 @@ export default function IdentitasAdminPage() {
   const [formData, setFormData] = useState({
     siteName: '',
     siteTagline: '',
+    siteDescription: '',
     logoUrl: '',
     faviconUrl: '',
+    heroTitle: '',
+    heroSubtitle: '',
+    heroDescription: '',
     contactEmail: '',
     contactPhone: '',
     contactAddress: '',
@@ -82,8 +91,12 @@ export default function IdentitasAdminPage() {
         setFormData({
           siteName: data.siteName || '',
           siteTagline: data.siteTagline || '',
+          siteDescription: data.siteDescription || '',
           logoUrl: data.logoUrl || '',
           faviconUrl: data.faviconUrl || '',
+          heroTitle: data.heroTitle || '',
+          heroSubtitle: data.heroSubtitle || '',
+          heroDescription: data.heroDescription || '',
           contactEmail: data.contactEmail || '',
           contactPhone: data.contactPhone || '',
           contactAddress: data.contactAddress || '',
@@ -243,6 +256,23 @@ export default function IdentitasAdminPage() {
                 </div>
               </div>
 
+              {/* Site Description */}
+              <div className="space-y-2">
+                <Label htmlFor="siteDescription">Deskripsi Singkat</Label>
+                <Textarea
+                  id="siteDescription"
+                  value={formData.siteDescription}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, siteDescription: e.target.value }))
+                  }
+                  placeholder="Deskripsi singkat tentang website/organisasi yang ditampilkan di footer"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deskripsi ini akan ditampilkan di bagian footer website
+                </p>
+              </div>
+
               {/* Logo URL */}
               <div className="space-y-2">
                 <Label htmlFor="logoUrl">Logo</Label>
@@ -296,7 +326,7 @@ export default function IdentitasAdminPage() {
                 <input
                   ref={faviconInputRef}
                   type="file"
-                  accept="image/x-icon,image/png,image/svg+xml"
+                  accept="image/x-icon,image/vnd.microsoft.icon,image/png,image/svg+xml,image/gif,image/webp"
                   onChange={handleFaviconSelect}
                   className="hidden"
                 />
@@ -326,7 +356,7 @@ export default function IdentitasAdminPage() {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Ukuran ideal: 32x32 atau 16x16 pixel (ICO, PNG, atau SVG)
+                  Ukuran ideal: 32x32 atau 16x16 pixel (ICO, PNG, SVG, GIF, atau WebP)
                 </p>
                 {formData.faviconUrl && (
                   <div className="mt-2 p-2 bg-muted/50 rounded-lg inline-flex items-center gap-3">
@@ -338,6 +368,70 @@ export default function IdentitasAdminPage() {
                     <span className="text-xs text-muted-foreground">Preview Favicon</span>
                   </div>
                 )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Hero Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Layout className="h-5 w-5" />
+                Hero Section
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Pengaturan teks untuk bagian Hero/Banner utama di halaman beranda.
+              </p>
+
+              {/* Hero Title */}
+              <div className="space-y-2">
+                <Label htmlFor="heroTitle">Judul Hero</Label>
+                <Input
+                  id="heroTitle"
+                  value={formData.heroTitle}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, heroTitle: e.target.value }))
+                  }
+                  placeholder="Selamat Datang di"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Judul utama yang ditampilkan di Hero section
+                </p>
+              </div>
+
+              {/* Hero Subtitle */}
+              <div className="space-y-2">
+                <Label htmlFor="heroSubtitle">Subtitle Hero</Label>
+                <Input
+                  id="heroSubtitle"
+                  value={formData.heroSubtitle}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, heroSubtitle: e.target.value }))
+                  }
+                  placeholder="Badan Penjaminan Mutu"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Subtitle/highlight yang ditampilkan dengan warna berbeda
+                </p>
+              </div>
+
+              {/* Hero Description */}
+              <div className="space-y-2">
+                <Label htmlFor="heroDescription">Deskripsi Hero</Label>
+                <Textarea
+                  id="heroDescription"
+                  value={formData.heroDescription}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, heroDescription: e.target.value }))
+                  }
+                  placeholder="Menggenggam Mutu, Meningkatkan Daya Saing. Menjadi lembaga terkemuka dan profesional dalam memperkuat layanan pendidikan berbasis budaya mutu untuk mempercepat terwujudnya Visi USNI."
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Deskripsi singkat yang ditampilkan di Hero section
+                </p>
               </div>
             </CardContent>
           </Card>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ import {
   UserX,
   Users,
   Clock,
+  Loader2,
 } from 'lucide-react';
 import { DeleteConfirmationDialog } from '@/components/admin/DeleteConfirmationDialog';
 import { toast } from 'sonner';
@@ -47,14 +49,48 @@ interface User {
 }
 
 export default function PenggunaAdminPage() {
+  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Check auth and role
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    const checkAuth = () => {
+      try {
+        const stored = localStorage.getItem('admin_user');
+        if (stored) {
+          const user = JSON.parse(stored);
+          if (user.role !== 'admin') {
+            toast.error('Anda tidak memiliki akses ke halaman ini');
+            router.push('/admin');
+            return;
+          }
+          setIsAdmin(true);
+        } else {
+          router.push('/admin/login');
+          return;
+        }
+      } catch {
+        router.push('/admin/login');
+        return;
+      }
+      setCheckingAuth(false);
+    };
+
+    // Small delay to ensure localStorage is available
+    const timer = setTimeout(checkAuth, 0);
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  useEffect(() => {
+    if (!checkingAuth && isAdmin) {
+      fetchUsers();
+    }
+  }, [checkingAuth, isAdmin]);
 
   const fetchUsers = async () => {
     try {
@@ -164,6 +200,25 @@ export default function PenggunaAdminPage() {
     }
   };
 
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
+    if (text.length <= maxLength) return text;
+    
+    // Potong teks
+    let truncated = text.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+  };
+
   // Action Buttons Component
   const ActionButtons = ({ item }: { item: User }) => (
     <TooltipProvider>
@@ -194,7 +249,7 @@ export default function PenggunaAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleToggleActive(item.id, item.isActive)}
-              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.isActive ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.isActive ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
               {item.isActive ? (
                 <UserX className="h-4 w-4" />
@@ -298,10 +353,10 @@ export default function PenggunaAdminPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm sm:text-base line-clamp-1">
-                          {item.fullName || item.email}
+                        <p className="font-medium text-sm sm:text-base">
+                          {truncateText(item.fullName || item.email, 30)}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">{item.email}</p>
+                        <p className="text-xs text-muted-foreground">{truncateText(item.email, 30)}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge className={`text-xs text-white ${getRoleBadgeVariant(item.role)}`}>
                             {getRoleLabel(item.role)}
@@ -375,10 +430,10 @@ export default function PenggunaAdminPage() {
                         </Avatar>
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium line-clamp-1">{item.fullName || '-'}</p>
+                        <p className="font-medium">{truncateText(item.fullName, 30)}</p>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-muted-foreground line-clamp-1">{item.email}</p>
+                        <p className="text-sm text-muted-foreground">{truncateText(item.email, 35)}</p>
                       </TableCell>
                       <TableCell>
                         <Badge className={`text-white ${getRoleBadgeVariant(item.role)}`}>

@@ -72,7 +72,7 @@ export default function AccreditationSection() {
             Capaian Mutu
           </span>
           <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mt-2 mb-4">
-            Status Akreditasi Program Studi
+            Status Akreditasi
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">
             Total <span className="font-semibold text-foreground">{totalPrograms}</span> Program Studi terakreditasi dari berbagai lembaga akreditasi

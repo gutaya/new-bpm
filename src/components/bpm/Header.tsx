@@ -28,7 +28,7 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
-// Default navigation with complete submenus
+// Default navigation (fallback if no database menu)
 const defaultNavigation: NavItem[] = [
   { name: 'Beranda', href: '/' },
   {
@@ -75,6 +75,7 @@ const defaultNavigation: NavItem[] = [
       { name: 'Survey', href: '/layanan/survey' },
       { name: 'Hibah', href: '/layanan/hibah' },
       { name: 'PEKERTI/AA', href: '/layanan/pekerti-aa' },
+      { name: 'Jabatan Fungsional', href: '/layanan/jafung' },
     ]
   },
   { name: 'Pusat Data', href: '/pusat-data' },
@@ -82,77 +83,36 @@ const defaultNavigation: NavItem[] = [
   { name: 'Hubungi Kami', href: '/hubungi-kami' },
 ];
 
-// Default submenus for each menu name
-const defaultSubmenus: Record<string, { name: string; href: string }[]> = {
-  'Profil': [
-    { name: 'Tentang Kami', href: '/tentang-kami' },
-    { name: 'Visi dan Misi', href: '/visi-misi' },
-    { name: 'Struktur Organisasi', href: '/struktur-organisasi' },
-  ],
-  'Dokumen': [
-    { name: 'Dokumen Publik', href: '/dokumen/publik' },
-    { name: 'Dokumen Universitas', href: '/dokumen/universitas' },
-    { name: 'Dokumen Akreditasi', href: '/dokumen/akreditasi' },
-    { name: 'Dokumen Eksternal', href: '/dokumen/eksternal' },
-    { name: 'Dokumen BPM', href: '/dokumen/bpm' },
-    { name: 'Dokumen SPMI', href: '/dokumen/spmi' },
-    { name: 'Dokumen SOP', href: '/dokumen/sop' },
-    { name: 'SK Rektor', href: '/dokumen/sk-rektor' },
-  ],
-  'Akreditasi': [
-    { name: 'Akreditasi Nasional', href: '/akreditasi/nasional' },
-    { name: 'Akreditasi Internasional', href: '/akreditasi/internasional' },
-    { name: 'Akreditasi Institusi', href: '/akreditasi/institusi' },
-  ],
-  'Layanan': [
-    { name: 'Audit Mutu Internal (AMI)', href: '/layanan/ami' },
-    { name: 'Survey', href: '/layanan/survey' },
-    { name: 'Hibah', href: '/layanan/hibah' },
-    { name: 'PEKERTI/AA', href: '/layanan/pekerti-aa' },
-  ],
-};
-
 const topBarLinks = [
   { name: 'Perpustakaan', href: 'https://lib.usni.ac.id/' },
   { name: 'E-Learning', href: 'https://lms.usni.ac.id/' },
   { name: 'PMB', href: 'https://usni.ac.id/admission.php' },
 ];
 
-// Convert database menu to navigation format, always using default submenus for known menus
-// Also ensure all default menus are included (like Pusat Data)
+// Convert database menu to navigation format
 function convertToNavigation(menuItems: MenuItem[]): NavItem[] {
-  if (!menuItems || menuItems.length === 0) return defaultNavigation;
+  if (!menuItems || menuItems.length === 0) {
+    return defaultNavigation;
+  }
 
-  // Get all menu names from database
-  const dbMenuNames = new Set(menuItems.map(item => item.title));
-
-  // Convert database items
-  const convertedItems = menuItems.map(item => {
-    // ALWAYS use default submenus for known menu names (Profil, Dokumen, Akreditasi, Layanan)
-    // This ensures complete and consistent submenus
-    if (defaultSubmenus[item.title]) {
-      return {
-        name: item.title,
-        href: item.url || '#',
-        hasDropdown: true,
-        subMenu: defaultSubmenus[item.title],
-      };
-    }
-    
-    // For other menus, use database children if available
+  return menuItems.map(item => {
+    // Use children from database if available
     if (item.children && item.children.length > 0) {
-      return {
-        name: item.title,
-        href: item.url || '#',
-        hasDropdown: true,
-        subMenu: item.children.map(child => ({
+      const subMenu = item.children
+        .sort((a, b) => a.orderIndex - b.orderIndex)
+        .map(child => ({
           name: child.title,
           href: child.url || '#',
-        })),
+        }));
+
+      return {
+        name: item.title,
+        href: item.url || '#',
+        hasDropdown: true,
+        subMenu,
       };
     }
-    
-    // Otherwise, no dropdown
+
     return {
       name: item.title,
       href: item.url || '#',
@@ -160,23 +120,6 @@ function convertToNavigation(menuItems: MenuItem[]): NavItem[] {
       subMenu: [],
     };
   });
-
-  // Add any missing default menus (like Pusat Data)
-  const missingItems = defaultNavigation.filter(
-    defaultItem => !dbMenuNames.has(defaultItem.name)
-  );
-
-  // Insert missing items at the correct position (before Hubungi Kami)
-  const result = [...convertedItems];
-  missingItems.forEach(missingItem => {
-    // Find the correct position based on defaultNavigation order
-    const defaultIndex = defaultNavigation.findIndex(item => item.name === missingItem.name);
-    if (defaultIndex !== -1) {
-      result.splice(defaultIndex, 0, missingItem);
-    }
-  });
-
-  return result;
 }
 
 // NavItem component
@@ -224,13 +167,13 @@ export default function Header() {
   const [expandedMenu, setExpandedMenu] = useState<string | null>(null);
   const [navigation, setNavigation] = useState<NavItem[]>(defaultNavigation);
 
-  // Fetch menu from API
+  // Fetch menu from API (Kelola Menu)
   useEffect(() => {
     fetch('/api/menu')
       .then((res) => res.json())
-      .then((data: MenuItem[]) => {
-        if (data && data.length > 0) {
-          setNavigation(convertToNavigation(data));
+      .then((menuData: MenuItem[]) => {
+        if (menuData && menuData.length > 0) {
+          setNavigation(convertToNavigation(menuData));
         }
       })
       .catch((error) => {

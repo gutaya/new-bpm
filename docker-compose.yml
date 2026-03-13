@@ -1,29 +1,30 @@
 # ===========================================
 # Docker Compose for BPM USNI
-# IP Binding: 10.8.0.1
+# Port: 2018 | IP Binding: 10.8.0.1
+# Network: global_usni_network
 # ===========================================
-
-version: '3.8'
 
 services:
   # ===========================================
-  # Next.js Application
+  # BPM USNI Next.js Application
   # ===========================================
   bpm-usni:
     build:
       context: .
       dockerfile: Dockerfile
+    
     container_name: bpm-usni-app
+    
     restart: unless-stopped
     
-    # Network Configuration - IP Binding 10.8.0.1
+    # Network Configuration
     networks:
-      bpm_network:
+      global_usni_network:
         ipv4_address: 10.8.0.1
     
-    # Port Mapping
+    # Port Mapping - Port 2018
     ports:
-      - "2020:2020"
+      - "2018:2018"
     
     # Environment Variables
     environment:
@@ -32,46 +33,34 @@ services:
       - NEXT_TELEMETRY_DISABLED=1
       - HOSTNAME=0.0.0.0
       - PORT=2018
+      - NEXT_PUBLIC_APP_URL=http://10.8.0.1:2018
     
     # Volume Mounts - Persist Data
     volumes:
-      # Database persistence
+      # Database persistence - critical for data retention
       - ./db:/app/db
-      # Upload/Media files persistence
+      # Upload/Media files persistence - images, documents
       - ./public/uploads:/app/public/uploads
-      # Prisma schema (for migrations)
-      - ./prisma:/app/prisma:ro
     
     # Health Check
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2020/api/identity"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:2018/api/identity"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
+      start_period: 15s
     
-    # Logging
+    # Logging Configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
-        max-file: "3"
+        max-file: "5"
 
 # ===========================================
 # Network Configuration
+# Using external network: global_usni_network
 # ===========================================
 networks:
-  bpm_network:
-    driver: bridge
-    ipam:
-      driver: default
-      config:
-        - subnet: 10.8.0.0/24
-          gateway: 10.8.0.254
-
-# ===========================================
-# Volume Configuration (Optional - for named volumes)
-# ===========================================
-# volumes:
-#   db_data:
-#   uploads_data:
+  global_usni_network:
+    external: true

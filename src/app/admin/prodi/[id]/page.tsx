@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import {
   Select,
@@ -37,24 +36,6 @@ const degreeLevelOptions = [
   { value: 's3', label: 'S3 (Doktor)' },
 ];
 
-const accreditationStatusOptions = [
-  { value: 'baik-sekali', label: 'Baik Sekali (A)' },
-  { value: 'baik', label: 'Baik (B)' },
-  { value: 'cukup', label: 'Cukup (C)' },
-  { value: 'unggul', label: 'Unggul' },
-  { value: 'proses', label: 'Dalam Proses' },
-  { value: 'belum', label: 'Belum Terakreditasi' },
-];
-
-const accreditationBodyOptions = [
-  { value: 'ban-pt', label: 'BAN-PT' },
-  { value: 'lam-teknik', label: 'LAM Teknik' },
-  { value: 'lam-infokom', label: 'LAM Infokom' },
-  { value: 'lamemba', label: 'LAMEMBA' },
-  { value: 'lamspak', label: 'LAMSPAK' },
-  { value: 'lainnya', label: 'Lainnya' },
-];
-
 export default function EditProdiPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
@@ -68,10 +49,7 @@ export default function EditProdiPage({ params }: PageProps) {
     code: '',
     facultyId: '',
     degreeLevel: 's1',
-    description: '',
     headName: '',
-    accreditationStatus: '',
-    accreditationBody: '',
     orderIndex: 0,
     isActive: true,
   });
@@ -80,8 +58,26 @@ export default function EditProdiPage({ params }: PageProps) {
     fetchFaculties();
     if (!isNew) {
       fetchStudyProgram();
+    } else {
+      // Auto-fill orderIndex for new study program
+      fetchNextOrderIndex();
     }
   }, [isNew, resolvedParams.id]);
+
+  const fetchNextOrderIndex = async () => {
+    try {
+      const response = await fetch('/api/admin/prodi');
+      if (response.ok) {
+        const data = await response.json();
+        const maxOrder = data.length > 0 ? Math.max(...data.map((p: { orderIndex: number }) => p.orderIndex || 0)) : 0;
+        setFormData((prev) => ({ ...prev, orderIndex: maxOrder + 1 }));
+      }
+    } catch (error) {
+      console.error('Error fetching order index:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchFaculties = async () => {
     try {
@@ -105,10 +101,7 @@ export default function EditProdiPage({ params }: PageProps) {
           code: data.code || '',
           facultyId: data.facultyId || '',
           degreeLevel: data.degreeLevel || 's1',
-          description: data.description || '',
           headName: data.headName || '',
-          accreditationStatus: data.accreditationStatus || '',
-          accreditationBody: data.accreditationBody || '',
           orderIndex: data.orderIndex ?? 0,
           isActive: data.isActive ?? true,
         });
@@ -202,77 +195,64 @@ export default function EditProdiPage({ params }: PageProps) {
               <CardTitle className="text-lg">Informasi Dasar</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Nama Program Studi *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="Masukkan nama program studi"
-                  required
-                />
-              </div>
-
-              {/* Code */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Fakultas, Code and Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                {/* Fakultas */}
                 <div className="space-y-2">
-                  <Label htmlFor="code">Kode Program Studi</Label>
+                  <Label htmlFor="facultyId">Fakultas</Label>
+                  <Select
+                    value={formData.facultyId || 'none'}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, facultyId: value === 'none' ? '' : value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tidak ada</SelectItem>
+                      {faculties.map((faculty) => (
+                        <SelectItem key={faculty.id} value={faculty.id}>
+                          {faculty.code || faculty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Code */}
+                <div className="space-y-2">
+                  <Label htmlFor="code">Kode Prodi</Label>
                   <Input
                     id="code"
                     value={formData.code}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, code: e.target.value }))
                     }
-                    placeholder="Contoh: TI, MI, SI"
+                    placeholder="TI"
                   />
                 </div>
 
-                {/* Order Index */}
-                <div className="space-y-2">
-                  <Label htmlFor="orderIndex">Urutan Tampil</Label>
+                {/* Name */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="name">Nama Program Studi *</Label>
                   <Input
-                    id="orderIndex"
-                    type="number"
-                    value={formData.orderIndex}
+                    id="name"
+                    value={formData.name}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        orderIndex: parseInt(e.target.value) || 0,
-                      }))
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
                     }
-                    placeholder="0"
+                    placeholder="Masukkan nama program studi"
+                    required
                   />
                 </div>
               </div>
 
-              {/* Faculty */}
-              <div className="space-y-2">
-                <Label htmlFor="facultyId">Fakultas</Label>
-                <Select
-                  value={formData.facultyId}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, facultyId: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih fakultas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {faculties.map((faculty) => (
-                      <SelectItem key={faculty.id} value={faculty.id}>
-                        {faculty.name}
-                        {faculty.code && ` (${faculty.code})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Hidden Order Index */}
+              <input type="hidden" value={formData.orderIndex} />
 
               {/* Degree Level */}
-              <div className="space-y-2">
+              <div className="space-y-2 sm:w-1/2">
                 <Label htmlFor="degreeLevel">Jenjang Pendidikan</Label>
                 <Select
                   value={formData.degreeLevel}
@@ -293,28 +273,7 @@ export default function EditProdiPage({ params }: PageProps) {
                 </Select>
               </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Deskripsi</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  placeholder="Deskripsi singkat program studi (opsional)"
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Leadership */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Kepemimpinan</CardTitle>
-            </CardHeader>
-            <CardContent>
+              {/* Head Name */}
               <div className="space-y-2">
                 <Label htmlFor="headName">Nama Ketua Program Studi</Label>
                 <Input
@@ -326,68 +285,9 @@ export default function EditProdiPage({ params }: PageProps) {
                   placeholder="Nama lengkap ketua program studi"
                 />
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Accreditation */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Akreditasi</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Accreditation Status */}
-              <div className="space-y-2">
-                <Label htmlFor="accreditationStatus">Status Akreditasi</Label>
-                <Select
-                  value={formData.accreditationStatus}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, accreditationStatus: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih status akreditasi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accreditationStatusOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Accreditation Body */}
-              <div className="space-y-2">
-                <Label htmlFor="accreditationBody">Lembaga Akreditasi</Label>
-                <Select
-                  value={formData.accreditationBody}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, accreditationBody: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih lembaga akreditasi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accreditationBodyOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pengaturan Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
+              {/* Status Aktif */}
+              <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5">
                   <Label htmlFor="isActive">Status Aktif</Label>
                   <p className="text-sm text-muted-foreground">

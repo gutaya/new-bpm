@@ -5,16 +5,14 @@ import { db } from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
-    const categoryId = searchParams.get('categoryId');
+    const menuItemId = searchParams.get('menuItemId');
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1');
     const pageSize = parseInt(searchParams.get('pageSize') || '10');
 
     // Build where clause
     const where: Record<string, unknown> = {};
-    if (category) where.category = category;
-    if (categoryId) where.categoryId = categoryId;
+    if (menuItemId) where.menuItemId = menuItemId;
     if (search) {
       where.OR = [
         { title: { contains: search } },
@@ -36,8 +34,8 @@ export async function GET(request: NextRequest) {
       skip,
       take: pageSize,
       include: {
-        categoryRef: {
-          select: { id: true, name: true },
+        menuItem: {
+          select: { id: true, title: true, url: true },
         },
       },
     });
@@ -64,7 +62,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, description, fileUrl, category, categoryId, published } = body;
+    const { title, description, fileUrl, menuItemId, published } = body;
 
     if (!title) {
       return NextResponse.json(
@@ -78,8 +76,7 @@ export async function POST(request: NextRequest) {
         title,
         description: description || null,
         fileUrl: fileUrl || null,
-        category: category || 'publik',
-        categoryId: categoryId || null,
+        menuItemId: menuItemId || null,
         published: published ?? true,
       },
     });
@@ -87,8 +84,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(document);
   } catch (error) {
     console.error('Error creating document:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Gagal membuat dokumen';
     return NextResponse.json(
-      { error: 'Gagal membuat dokumen' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

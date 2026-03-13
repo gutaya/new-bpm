@@ -85,15 +85,7 @@ const menuGroups: MenuGroup[] = [
   {
     title: 'Data',
     items: [
-      { 
-        name: 'Dokumen', 
-        href: '#', 
-        icon: FolderOpen,
-        children: [
-          { name: 'Dokumen', href: '/admin/dokumen', icon: FileText },
-          { name: 'Kategori Dokumen', href: '/admin/kategori-dokumen', icon: Database },
-        ]
-      },
+      { name: 'Dokumen', href: '/admin/dokumen', icon: FolderOpen },
       { 
         name: 'Akreditasi', 
         href: '/admin/akreditasi', 

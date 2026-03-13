@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { db } from '@/lib/db';
 
 // GET - Get single document
 export async function GET(
@@ -11,11 +9,11 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const document = await prisma.document.findUnique({
+    const document = await db.document.findUnique({
       where: { id },
       include: {
-        categoryRef: {
-          select: { id: true, name: true },
+        menuItem: {
+          select: { id: true, title: true, url: true },
         },
       },
     });
@@ -46,7 +44,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json();
 
-    const existingDocument = await prisma.document.findUnique({
+    const existingDocument = await db.document.findUnique({
       where: { id },
     });
 
@@ -62,11 +60,10 @@ export async function PATCH(
     if (body.title !== undefined) updateData.title = body.title;
     if (body.description !== undefined) updateData.description = body.description || null;
     if (body.fileUrl !== undefined) updateData.fileUrl = body.fileUrl || null;
-    if (body.category !== undefined) updateData.category = body.category;
-    if (body.categoryId !== undefined) updateData.categoryId = body.categoryId || null;
+    if (body.menuItemId !== undefined) updateData.menuItemId = body.menuItemId || null;
     if (body.published !== undefined) updateData.published = body.published;
 
-    const document = await prisma.document.update({
+    const document = await db.document.update({
       where: { id },
       data: updateData,
     });
@@ -89,7 +86,7 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const document = await prisma.document.findUnique({
+    const document = await db.document.findUnique({
       where: { id },
     });
 
@@ -100,7 +97,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.document.delete({
+    await db.document.delete({
       where: { id },
     });
 

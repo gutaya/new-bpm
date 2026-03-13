@@ -43,6 +43,21 @@ export async function GET(request: NextRequest) {
             slug: true,
           },
         },
+        studyProgram: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            degreeLevel: true,
+            faculty: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       skip,
@@ -76,7 +91,9 @@ export async function POST(request: NextRequest) {
       description,
       category,
       categoryId,
+      studyProgramId,
       accreditationBody,
+      accreditationStatus,
       certificateUrl,
       imageUrl,
       validUntil,
@@ -96,7 +113,9 @@ export async function POST(request: NextRequest) {
         description,
         category: category || 'nasional',
         categoryId: categoryId || null,
+        studyProgramId: studyProgramId || null,
         accreditationBody: accreditationBody || 'ban-pt',
+        accreditationStatus: accreditationStatus || null,
         certificateUrl: certificateUrl || null,
         imageUrl: imageUrl || null,
         validUntil: validUntil ? new Date(validUntil) : null,
@@ -108,6 +127,21 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             slug: true,
+          },
+        },
+        studyProgram: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            degreeLevel: true,
+            faculty: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
           },
         },
       },

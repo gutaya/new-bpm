@@ -183,54 +183,48 @@ export default function EditPengumumanPage({ params }: PageProps) {
                 </p>
               </div>
 
-              {/* Priority */}
-              <div className="space-y-2">
-                <Label htmlFor="priority">Prioritas</Label>
-                <Select
-                  value={formData.priority}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, priority: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih prioritas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="high">Tinggi</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Prioritas menentukan seberapa penting pengumuman ini ditampilkan
-                </p>
+              {/* Priority & Expire At */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="priority">Prioritas</Label>
+                  <Select
+                    value={formData.priority}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, priority: value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih prioritas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="high">Tinggi</SelectItem>
+                      <SelectItem value="urgent">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Prioritas menentukan seberapa penting pengumuman ini ditampilkan
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="expireAt">Tanggal Kadaluarsa</Label>
+                  <Input
+                    id="expireAt"
+                    type="date"
+                    value={formData.expireAt}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, expireAt: e.target.value }))
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Kosongkan jika pengumuman tidak memiliki batas waktu
+                  </p>
+                </div>
               </div>
 
-              {/* Expire At */}
-              <div className="space-y-2">
-                <Label htmlFor="expireAt">Tanggal Kadaluarsa</Label>
-                <Input
-                  id="expireAt"
-                  type="date"
-                  value={formData.expireAt}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, expireAt: e.target.value }))
-                  }
-                />
-                <p className="text-xs text-muted-foreground">
-                  Kosongkan jika pengumuman tidak memiliki batas waktu
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Publish Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pengaturan Publikasi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
+              {/* Status Publikasi */}
+              <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5">
                   <Label htmlFor="published">Status Publikasi</Label>
                   <p className="text-sm text-muted-foreground">

@@ -33,7 +33,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, slug, description, content, icon, menuCategory, orderIndex, published } = body;
+    const { title, slug, description, content, icon, menuCategory, parentMenu, showInMenu, orderIndex, published } = body;
 
     const updateData: Record<string, unknown> = {};
 
@@ -42,7 +42,9 @@ export async function PATCH(
     if (description !== undefined) updateData.description = description;
     if (content !== undefined) updateData.content = content;
     if (icon !== undefined) updateData.icon = icon;
-    if (menuCategory !== undefined) updateData.menuCategory = menuCategory;
+    if (menuCategory !== undefined) updateData.menuCategory = menuCategory === 'none' ? null : menuCategory;
+    if (parentMenu !== undefined) updateData.parentMenu = parentMenu === 'none' ? null : parentMenu;
+    if (showInMenu !== undefined) updateData.showInMenu = showInMenu;
     if (orderIndex !== undefined) updateData.orderIndex = orderIndex;
     if (published !== undefined) updateData.published = published;
 

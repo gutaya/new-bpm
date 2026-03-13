@@ -2,9 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
-// Allowed image types
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// Allowed image types (including favicon formats)
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/x-icon',      // .ico files (favicon)
+  'image/vnd.microsoft.icon', // .ico files (alternate mime type)
+  'image/svg+xml',     // .svg files
+];
+
+// Allowed document types
+const ALLOWED_DOCUMENT_TYPES = [
+  'application/pdf',   // .pdf files
+];
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB (increased for documents)
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,10 +32,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const allAllowedTypes = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_DOCUMENT_TYPES];
+    const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
+    const isDocument = ALLOWED_DOCUMENT_TYPES.includes(file.type);
+
     // Validate file type
-    if (!ALLOWED_TYPES.includes(file.type)) {
+    if (!allAllowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Tipe file tidak didukung. Gunakan JPEG, PNG, GIF, atau WebP' },
+        { error: 'Tipe file tidak didukung. Gunakan JPEG, PNG, GIF, WebP, ICO, SVG, atau PDF' },
         { status: 400 }
       );
     }
@@ -29,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'Ukuran file terlalu besar. Maksimal 5MB' },
+        { error: 'Ukuran file terlalu besar. Maksimal 10MB' },
         { status: 400 }
       );
     }
@@ -37,11 +55,12 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 8);
-    const extension = file.name.split('.').pop() || 'jpg';
+    const extension = file.name.split('.').pop() || (isDocument ? 'pdf' : 'jpg');
     const filename = `${timestamp}-${randomString}.${extension}`;
 
-    // Ensure upload directory exists
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'images');
+    // Determine upload directory based on file type
+    const uploadSubDir = isDocument ? 'documents' : 'images';
+    const uploadDir = path.join(process.cwd(), 'public', 'uploads', uploadSubDir);
     await mkdir(uploadDir, { recursive: true });
 
     // Write file to disk
@@ -51,7 +70,7 @@ export async function POST(request: NextRequest) {
     await writeFile(filePath, buffer);
 
     // Return the public URL
-    const url = `/uploads/images/${filename}`;
+    const url = `/uploads/${uploadSubDir}/${filename}`;
 
     return NextResponse.json({
       success: true,

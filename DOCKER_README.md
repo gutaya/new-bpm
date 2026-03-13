@@ -1,208 +1,178 @@
-# ===========================================
-# BPM USNI - Docker Deployment Guide
-# ===========================================
+# Docker Deployment - BPM USNI
 
-## 🚀 Quick Start
+Panduan deploy aplikasi BPM USNI menggunakan Docker dengan konfigurasi:
+- **Port**: 2018
+- **IP Binding**: 10.8.0.1
+- **Network**: global_usni_network
 
-### Prerequisites
-- Docker Engine 20.10+
-- Docker Compose 2.0+
+## Prasyarat
 
-### Deploy dengan IP Binding 10.8.0.1 dan Port 2018
+1. Docker dan Docker Compose sudah terinstall
+2. Network `global_usni_network` sudah dibuat (jika belum, jalankan perintah di bawah)
+
+## Langkah Instalasi
+
+### 1. Buat Network Docker (jika belum ada)
 
 ```bash
-# 1. Buat direktori dan masuk ke dalamnya
-mkdir bpm-usni && cd bpm-usni
-
-# 2. Clone atau copy project files
-
-# 3. Buat struktur direktori
-mkdir -p db public/uploads/images prisma
-
-# 4. Copy database yang ada (jika ada)
-# cp /path/to/existing/custom.db db/
-
-# 5. Build dan jalankan
-chmod +x docker.sh
-./docker.sh start
+docker network create --driver bridge --subnet=10.8.0.0/24 global_usni_network
 ```
 
-## 📋 Perintah yang Tersedia
+### 2. Build dan Jalankan Container
 
-| Perintah | Deskripsi |
-|----------|-----------|
-| `./docker.sh start` | Build dan jalankan aplikasi |
-| `./docker.sh stop` | Hentikan aplikasi |
-| `./docker.sh restart` | Restart aplikasi |
-| `./docker.sh logs` | Lihat log aplikasi |
-| `./docker.sh build` | Build Docker image |
-| `./docker.sh ps` | Status container |
-| `./docker.sh shell` | Akses shell container |
-| `./docker.sh db-push` | Push schema ke database |
-| `./docker.sh clean` | Hapus semua container dan volume |
-| `./docker.sh backup` | Backup database dan uploads |
+```bash
+# Build image
+docker-compose build --no-cache
 
----
+# Jalankan container
+docker-compose up -d
 
-## 🔧 Konfigurasi
+# Lihat logs
+docker-compose logs -f
+```
 
-### Network Configuration
-- **IP Binding**: `10.8.0.1`
-- **Subnet**: `10.8.0.0/24`
-- **Gateway**: `10.8.0.254`
-- **Port**: `2018`
+### 3. Verifikasi Instalasi
 
-### Volume Mounts
-Data akan disimpan di host machine:
+```bash
+# Cek status container
+docker-compose ps
+
+# Cek health status
+docker inspect --format='{{.State.Health.Status}}' bpm-usni-app
+```
+
+## Akses Aplikasi
+
+Setelah container berjalan, akses aplikasi di:
+- **URL**: `http://<server-ip>:2018`
+- **Admin Panel**: `http://<server-ip>:2018/admin/login`
+
+## Struktur Volume
+
+Data akan tersimpan di host machine:
 
 | Host Path | Container Path | Keterangan |
 |-----------|----------------|------------|
 | `./db` | `/app/db` | Database SQLite |
-| `./public/uploads` | `/app/public/uploads` | File uploads |
-| `./prisma` | `/app/prisma` | Prisma schema |
+| `./public/uploads` | `/app/public/uploads` | File upload (gambar, dokumen) |
 
-### Environment Variables
-Copy `.env.docker` ke `.env` untuk production:
+## Perintah Docker
 
 ```bash
-cp .env.docker .env
-```
-
----
-
-## 🗃️ Database
-
-### Database Baru
-Jika database belum ada, akan dibuat otomatis saat container pertama kali dijalankan.
-
-### Database yang Sudah Ada
-Copy database ke folder `db/`:
-
-```bash
-cp /path/to/custom.db db/
-```
-
-### Menjalankan Migration
-```bash
-./docker.sh db-push
-```
-
----
-
-## 📁 Struktur Folder
-
-```
-bpm-usni/
-├── db/
-│   └── custom.db          # Database SQLite
-├── public/
-│   └── uploads/
-│       └── images/        # Uploaded images
-├── prisma/
-│   └── schema.prisma      # Database schema
-├── docker-compose.yml
-├── Dockerfile
-├── docker.sh
-├── .env.docker
-└── .dockerignore
-```
-
----
-
-## 🌐 Akses Aplikasi
-
-Setelah deployment, aplikasi dapat diakses di:
-
-| Akses | URL |
-|-------|-----|
-| Local | http://localhost:2018 |
-| Network | http://10.8.0.1:2018 |
-| Admin Panel | http://10.8.0.1:2018/admin/login |
-
----
-
-## 🔍 Monitoring
-
-### Health Check
-Container memiliki health check otomatis:
-- Interval: 30 detik
-- Timeout: 10 detik
-- Endpoint: `/api/identity`
-
-### Melihat Logs
-```bash
-./docker.sh logs
-# atau
-docker-compose logs -f
-```
-
----
-
-## 🔄 Backup & Restore
-
-### Backup
-```bash
-./docker.sh backup
-```
-Backup akan disimpan di `backups/YYYYMMDD_HHMMSS/`
-
-### Restore
-```bash
-# Stop container
-./docker.sh stop
-
-# Restore database
-cp backups/YYYYMMDD_HHMMSS/db/custom.db db/
-
-# Restore uploads
-cp -r backups/YYYYMMDD_HHMMSS/uploads/* public/uploads/
-
 # Start container
-./docker.sh start
+docker-compose up -d
+
+# Stop container
+docker-compose down
+
+# Restart container
+docker-compose restart
+
+# Lihat logs
+docker-compose logs -f
+
+# Rebuild container
+docker-compose build --no-cache && docker-compose up -d
+
+# Masuk ke container
+docker exec -it bpm-usni-app sh
+
+# Backup database
+cp ./db/custom.db ./db/backup/custom.db.$(date +%Y%m%d_%H%M%S)
+
+# Backup uploads
+tar -czf uploads_backup_$(date +%Y%m%d_%H%M%S).tar.gz ./public/uploads
 ```
 
----
+## Environment Variables
 
-## ⚠️ Troubleshooting
+| Variable | Value | Keterangan |
+|----------|-------|------------|
+| `NODE_ENV` | production | Environment mode |
+| `PORT` | 2018 | Port aplikasi |
+| `DATABASE_URL` | file:/app/db/custom.db | Lokasi database |
+| `NEXT_TELEMETRY_DISABLED` | 1 | Disable telemetry |
+
+## Troubleshooting
 
 ### Container tidak bisa start
-```bash
-# Lihat logs
-./docker.sh logs
 
-# Rebuild dari awal
-./docker.sh clean
-./docker.sh start
+```bash
+# Cek logs
+docker-compose logs bpm-usni
+
+# Cek apakah port sudah digunakan
+netstat -tlnp | grep 2018
 ```
 
-### Database error
-```bash
-# Push schema
-./docker.sh db-push
+### Database tidak bisa diakses
 
-# Atau akses shell dan reset database
-./docker.sh shell
-npx prisma db push --force-reset
+```bash
+# Cek permission folder db
+ls -la ./db
+
+# Fix permission
+chmod -R 755 ./db
 ```
 
-### Permission denied
+### Upload tidak berfungsi
+
 ```bash
-chmod +x docker.sh
-chmod -R 755 db public/uploads
+# Cek permission folder uploads
+ls -la ./public/uploads
+
+# Fix permission
+chmod -R 755 ./public/uploads
 ```
 
----
+### Network tidak ditemukan
 
-## 🔒 Security Recommendations
+```bash
+# Buat ulang network
+docker network create --driver bridge --subnet=10.8.0.0/24 global_usni_network
 
-1. Ganti default credentials setelah deployment
-2. Gunakan HTTPS dengan reverse proxy (nginx/traefik)
-3. Setup firewall untuk membatasi akses port 2018
-4. Backup database secara berkala
-5. Update image secara berkala untuk security patches
+# Cek network
+docker network ls | grep global_usni_network
+```
 
----
+## Update Aplikasi
 
-## 📞 Support
+```bash
+# Pull changes terbaru
+git pull
 
-Untuk bantuan teknis, hubungi tim IT BPM USNI.
+# Rebuild dan restart
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+## Backup & Restore
+
+### Backup
+
+```bash
+# Backup database
+cp ./db/custom.db ./backup/custom.db.$(date +%Y%m%d_%H%M%S)
+
+# Backup uploads
+tar -czf ./backup/uploads_$(date +%Y%m%d_%H%M%S).tar.gz ./public/uploads
+```
+
+### Restore
+
+```bash
+# Restore database
+cp ./backup/custom.db.YYYYMMDD_HHMMSS ./db/custom.db
+
+# Restore uploads
+tar -xzf ./backup/uploads_YYYYMMDD_HHMMSS.tar.gz -C ./
+```
+
+## Default Admin Account
+
+Setelah instalasi, gunakan akun default:
+- **Email**: admin@usni.ac.id
+- **Password**: admin123
+
+**PENTING**: Segera ubah password setelah login pertama!

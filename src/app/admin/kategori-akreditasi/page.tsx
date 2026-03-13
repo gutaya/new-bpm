@@ -167,7 +167,7 @@ export default function KategoriAkreditasiAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleToggleActive(item.id, item.isActive)}
-              className={`h-8 w-8 shrink-0 ${item.isActive ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 shrink-0 ${item.isActive ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
               {item.isActive ? (
                 <EyeOff className="h-4 w-4" />

@@ -1,25 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET - Public API for documents
+// GET - Public API for documents (filtered by sub menu)
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const category = searchParams.get('category');
+    const menuUrl = searchParams.get('menuUrl');
+    const menuItemId = searchParams.get('menuItemId');
     const search = searchParams.get('search');
 
     // Build filter
     const where: Record<string, unknown> = { published: true };
 
-    if (category && category !== 'semua') {
-      where.category = category;
+    // Filter by menuItemId directly
+    if (menuItemId && menuItemId !== 'semua' && menuItemId !== 'all') {
+      where.menuItemId = menuItemId;
+    }
+    // Filter by menu URL path
+    else if (menuUrl && menuUrl !== 'semua' && menuUrl !== 'all') {
+      // Find menu item by URL
+      const menuItem = await db.menuItem.findFirst({
+        where: { 
+          url: menuUrl.startsWith('/') ? menuUrl : `/${menuUrl}`,
+          isActive: true 
+        },
+        select: { id: true }
+      });
+      
+      if (menuItem) {
+        where.menuItemId = menuItem.id;
+      } else {
+        // No menu found, return empty
+        return NextResponse.json([]);
+      }
     }
 
     const documents = await db.document.findMany({
       where,
       include: {
-        categoryRef: {
-          select: { name: true, slug: true }
+        menuItem: {
+          select: { id: true, title: true, url: true }
         }
       },
       orderBy: { createdAt: 'desc' },
@@ -29,19 +49,22 @@ export async function GET(request: NextRequest) {
     let filteredDocs = documents;
     if (search) {
       const searchLower = search.toLowerCase();
-      filteredDocs = documents.filter((doc: Record<string, unknown>) =>
-        (doc.title as string).toLowerCase().includes(searchLower) ||
-        (doc.description as string)?.toLowerCase().includes(searchLower)
+      filteredDocs = documents.filter((doc) =>
+        doc.title.toLowerCase().includes(searchLower) ||
+        doc.description?.toLowerCase().includes(searchLower)
       );
     }
 
     // Transform for frontend
-    const result = filteredDocs.map((doc: Record<string, unknown>) => ({
+    const result = filteredDocs.map((doc) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,
-      category: (doc.categoryRef as Record<string, string>)?.name || doc.category,
-      categorySlug: doc.category,
+      menuItem: doc.menuItem ? {
+        id: doc.menuItem.id,
+        title: doc.menuItem.title,
+        url: doc.menuItem.url
+      } : null,
       date: doc.createdAt,
       size: doc.fileUrl ? 'PDF' : 'N/A',
       type: 'pdf',

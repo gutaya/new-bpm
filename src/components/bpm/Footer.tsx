@@ -7,6 +7,7 @@ import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter, Youtube, Link
 interface WebsiteIdentity {
   siteName: string | null;
   siteTagline: string | null;
+  siteDescription: string | null;
   logoUrl: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -24,6 +25,7 @@ interface WebsiteIdentity {
 const defaultIdentity: WebsiteIdentity = {
   siteName: 'BPM USNI',
   siteTagline: 'Badan Penjaminan Mutu',
+  siteDescription: 'Menggenggam Mutu, Meningkatkan Daya Saing. Menjadi lembaga terkemuka dan profesional dalam memperkuat layanan pendidikan berbasis budaya mutu untuk mempercepat terwujudnya Visi USNI.',
   logoUrl: 'https://bpm.usni.ac.id/assets/logo-usni-C0MgIZ6x.png',
   contactEmail: 'bpm@usni.ac.id',
   contactPhone: '(021) 739-8393',
@@ -109,7 +111,7 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-sm text-primary-foreground/80 leading-relaxed mb-4">
-              Menggenggam Mutu, Meningkatkan Daya Saing. Menjadi lembaga terkemuka dan profesional dalam memperkuat layanan pendidikan berbasis budaya mutu untuk mempercepat terwujudnya Visi USNI.
+              {identity.siteDescription || defaultIdentity.siteDescription}
             </p>
 
             {/* Social Links */}
@@ -213,18 +215,6 @@ export default function Footer() {
             {identity.footerText || `© ${currentYear} ${identity.siteName || 'BPM USNI'}. All rights reserved.`}
           </p>
           <div className="flex items-center gap-6">
-            <Link
-              href="#"
-              className="text-sm text-primary-foreground/60 hover:text-[#D9F3FC] transition-colors"
-            >
-              Kebijakan Privasi
-            </Link>
-            <Link
-              href="#"
-              className="text-sm text-primary-foreground/60 hover:text-[#D9F3FC] transition-colors"
-            >
-              Syarat & Ketentuan
-            </Link>
             <Link
               href="/admin/login"
               className="text-sm text-primary-foreground/60 hover:text-[#D9F3FC] transition-colors"

@@ -14,20 +14,35 @@ const statusColors: Record<string, string> = {
 // GET - API for accreditation chart data based on Program Studi
 export async function GET() {
   try {
-    // Get all accreditation data
+    // Get all accreditation data with study program info
     const accreditations = await db.accreditationData.findMany({
       where: { published: true },
       select: {
         title: true,
         accreditationBody: true,
         accreditationStatus: true,
-      }
+        studyProgram: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            degreeLevel: true,
+            faculty: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     // Group by accreditation body
-    const groupedData: Record<string, { 
-      name: string; 
-      items: { status: string; count: number; programs: string[] }[] 
+    const groupedData: Record<string, {
+      name: string;
+      items: { status: string; count: number; programs: string[]; studyPrograms: { id: string; name: string; faculty?: string | null }[] }[]
     }> = {};
 
     // Lembaga names mapping
@@ -44,14 +59,16 @@ export async function GET() {
       const body = acc.accreditationBody || 'ban-pt';
       const lembagaName = lembagaNames[body] || body.toUpperCase();
       const status = acc.accreditationStatus || 'B';
-      
-      // Extract program name from title (remove "Program Studi" or "Universitas" prefix for cleaner display)
-      let programName = acc.title || '';
-      
+
+      // Get program name - prefer study program name if linked
+      const programName = acc.studyProgram?.name || acc.title || '';
+
       // Skip institution accreditation for program studi count
-      const isInstitution = programName.toLowerCase().includes('universitas') || 
-                          programName.toLowerCase().includes('institusi');
-      
+      const isInstitution = !acc.studyProgram && (
+        programName.toLowerCase().includes('universitas') ||
+        programName.toLowerCase().includes('institusi')
+      );
+
       if (!groupedData[body]) {
         groupedData[body] = {
           name: lembagaName,
@@ -62,7 +79,7 @@ export async function GET() {
       // Find or create status group
       let statusGroup = groupedData[body].items.find(s => s.status === status);
       if (!statusGroup) {
-        statusGroup = { status, count: 0, programs: [] };
+        statusGroup = { status, count: 0, programs: [], studyPrograms: [] };
         groupedData[body].items.push(statusGroup);
       }
 
@@ -70,6 +87,13 @@ export async function GET() {
       if (!isInstitution) {
         statusGroup.count++;
         statusGroup.programs.push(programName);
+        if (acc.studyProgram) {
+          statusGroup.studyPrograms.push({
+            id: acc.studyProgram.id,
+            name: acc.studyProgram.name,
+            faculty: acc.studyProgram.faculty?.name || null,
+          });
+        }
       }
     });
 
@@ -80,6 +104,7 @@ export async function GET() {
       category: string;
       count: number;
       programs: string;
+      studyPrograms: string;
       color: string;
     }[] = [];
 
@@ -91,6 +116,7 @@ export async function GET() {
           category: item.status,
           count: item.count,
           programs: JSON.stringify(item.programs),
+          studyPrograms: JSON.stringify(item.studyPrograms),
           color: statusColors[item.status] || '#6b7280',
         });
       });

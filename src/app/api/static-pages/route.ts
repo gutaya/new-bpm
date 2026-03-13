@@ -1,33 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET - Public API for static pages
+// GET - Fetch static pages for public
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
+    const searchParams = request.nextUrl.searchParams;
     const parentMenu = searchParams.get('parentMenu');
-    const slug = searchParams.get('slug');
+    const menuCategory = searchParams.get('menuCategory');
 
-    // If slug is provided, get single page
-    if (slug) {
-      const page = await db.staticPage.findUnique({
-        where: { slug },
-      });
-      return NextResponse.json(page);
-    }
+    const where: {
+      published: boolean;
+      showInMenu?: boolean;
+      parentMenu?: string | null;
+      menuCategory?: string | null;
+    } = {
+      published: true,
+    };
 
-    // Build filter
-    const where: Record<string, unknown> = { published: true };
+    // If parentMenu is specified, filter by it
     if (parentMenu) {
       where.parentMenu = parentMenu;
+      where.showInMenu = true;
     }
 
-    const pages = await db.staticPage.findMany({
+    // If menuCategory is specified, filter by it
+    if (menuCategory) {
+      where.menuCategory = menuCategory;
+    }
+
+    const staticPages = await db.staticPage.findMany({
       where,
       orderBy: { orderIndex: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        description: true,
+        icon: true,
+        parentMenu: true,
+        menuCategory: true,
+        orderIndex: true,
+        updatedAt: true,
+      },
     });
 
-    return NextResponse.json(pages);
+    return NextResponse.json(staticPages);
   } catch (error) {
     console.error('Error fetching static pages:', error);
     return NextResponse.json([]);

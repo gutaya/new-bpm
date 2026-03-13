@@ -223,12 +223,34 @@ export default function PengumumanAdminPage() {
     });
   };
 
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
+    // Hapus tag HTML jika ada
+    const strippedText = text.replace(/<[^>]*>/g, '');
+    
+    if (strippedText.length <= maxLength) return strippedText;
+    
+    // Potong teks
+    let truncated = strippedText.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+  };
+
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'urgent':
         return <AlertCircle className="h-4 w-4 text-red-500" />;
       case 'high':
-        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+        return <AlertTriangle className="h-4 w-4 text-[#1B99F4]" />;
       default:
         return <Info className="h-4 w-4 text-blue-500" />;
     }
@@ -239,7 +261,7 @@ export default function PengumumanAdminPage() {
       case 'urgent':
         return <Badge className="bg-red-500">Urgent</Badge>;
       case 'high':
-        return <Badge className="bg-orange-500">Tinggi</Badge>;
+        return <Badge className="bg-[#1B99F4]">Tinggi</Badge>;
       default:
         return <Badge variant="secondary">Normal</Badge>;
     }
@@ -273,7 +295,7 @@ export default function PengumumanAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleTogglePublish(item.id, item.published)}
-              className={`h-8 w-8 shrink-0 ${item.published ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 shrink-0 ${item.published ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
               {item.published ? (
                 <EyeOff className="h-4 w-4" />
@@ -380,9 +402,9 @@ export default function PengumumanAdminPage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base line-clamp-2">{item.title}</p>
-                      <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1">
-                        {item.content.replace(/<[^>]*>/g, '').substring(0, 120)}{item.content.length > 120 ? '...' : ''}
+                      <p className="font-medium text-sm sm:text-base">{truncateText(item.title, 50)}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {truncateText(item.content, 50)}
                       </p>
                       <div className="flex flex-wrap items-center gap-2 mt-2">
                         {getPriorityBadge(item.priority)}
@@ -484,9 +506,9 @@ export default function PengumumanAdminPage() {
                       </TableCell>
                       <TableCell>
                         <div className="max-w-[220px]">
-                          <p className="font-medium line-clamp-1">{item.title}</p>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-0.5">
-                            {item.content.replace(/<[^>]*>/g, '').substring(0, 150)}{item.content.length > 150 ? '...' : ''}
+                          <p className="font-medium">{truncateText(item.title, 40)}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {truncateText(item.content, 40)}
                           </p>
                         </div>
                       </TableCell>

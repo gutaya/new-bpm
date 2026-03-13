@@ -133,6 +133,25 @@ export default function QuickLinksAdminPage() {
       item.url.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
+    if (text.length <= maxLength) return text;
+    
+    // Potong teks
+    let truncated = text.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+  };
+
   // Action Buttons Component
   const ActionButtons = ({ item }: { item: QuickLink }) => (
     <TooltipProvider>
@@ -182,7 +201,7 @@ export default function QuickLinksAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleToggleActive(item.id, item.isActive)}
-              className={`h-8 w-8 shrink-0 ${item.isActive ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 shrink-0 ${item.isActive ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
               {item.isActive ? (
                 <EyeOff className="h-4 w-4" />
@@ -281,8 +300,8 @@ export default function QuickLinksAdminPage() {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm sm:text-base truncate">
-                      {item.title}
+                    <p className="font-medium text-sm sm:text-base">
+                      {truncateText(item.title, 30)}
                     </p>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge
@@ -291,8 +310,8 @@ export default function QuickLinksAdminPage() {
                       >
                         {item.isActive ? 'Aktif' : 'Nonaktif'}
                       </Badge>
-                      <span className="text-xs text-muted-foreground truncate">
-                        {item.url}
+                      <span className="text-xs text-muted-foreground">
+                        {truncateText(item.url, 30)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -358,7 +377,7 @@ export default function QuickLinksAdminPage() {
                           <div className="w-8 h-8 rounded-md bg-[#1B99F4]/10 flex items-center justify-center shrink-0">
                             <DynamicIcon name={item.icon} className="h-4 w-4 text-[#1B99F4]" />
                           </div>
-                          <span className="font-medium">{item.title}</span>
+                          <span className="font-medium">{truncateText(item.title, 30)}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -368,7 +387,7 @@ export default function QuickLinksAdminPage() {
                           rel="noopener noreferrer"
                           className="text-sm text-[#1B99F4] hover:underline flex items-center gap-1"
                         >
-                          {item.url}
+                          {truncateText(item.url, 40)}
                           <ExternalLink className="h-3 w-3" />
                         </a>
                       </TableCell>

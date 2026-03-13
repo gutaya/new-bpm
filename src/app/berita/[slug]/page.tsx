@@ -19,7 +19,6 @@ import {
   Twitter, 
   Linkedin, 
   MessageCircle,
-  Clock,
   ChevronRight,
   Newspaper,
   Tag,
@@ -38,6 +37,7 @@ interface NewsDetail {
   publishedAt: string | null;
   viewCount: number;
   createdAt: string;
+  tags?: { id: string; name: string; slug: string }[];
 }
 
 interface RelatedNews {
@@ -93,27 +93,25 @@ export default function BeritaDetailPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    // Use UTC to avoid timezone differences between server and client
+    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
+                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const dayName = days[date.getDay()];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${dayName}, ${day} ${month} ${year}`;
   };
 
   const formatShortDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('id-ID', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
-
-  const estimateReadTime = (content: string) => {
-    const text = content.replace(/<[^>]*>/g, '');
-    const words = text.split(/\s+/).length;
-    const minutes = Math.ceil(words / 200);
-    return minutes;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 
+                    'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+    const day = date.getDate();
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
   };
 
   const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
@@ -211,19 +209,18 @@ export default function BeritaDetailPage() {
         <body>
           <div class="logo">
             <h2>BPM USNI</h2>
-            <p>Badan Penjaminan Mutu - Universitas Suryakancana</p>
+            <p>Badan Penjaminan Mutu - Universitas Satya Negara Indonesia</p>
           </div>
           <h1>${news.title}</h1>
           <div class="meta">
             <span>📅 ${formatDate(news.publishedAt || news.createdAt)}</span>
             <span>👤 Admin BPM</span>
-            <span>⏱️ ${estimateReadTime(news.content)} menit baca</span>
           </div>
           <div class="content">
             ${news.content}
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} BPM USNI - Badan Penjaminan Mutu Universitas Suryakancana</p>
+            <p>© ${new Date().getFullYear()} BPM USNI - Badan Penjaminan Mutu Universitas Satya Negara Indonesia</p>
             <p>Dokumen ini diunduh dari ${shareUrl}</p>
           </div>
         </body>
@@ -353,10 +350,6 @@ export default function BeritaDetailPage() {
                           <span>Admin BPM</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-primary" />
-                          <span>{estimateReadTime(news.content)} menit baca</span>
-                        </div>
-                        <div className="flex items-center gap-2">
                           <Eye className="h-4 w-4 text-primary" />
                           <span>{news.viewCount} views</span>
                         </div>
@@ -433,9 +426,20 @@ export default function BeritaDetailPage() {
                         <Tag className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm font-medium text-muted-foreground">Tags:</span>
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant="outline" className="text-xs">Berita</Badge>
-                          <Badge variant="outline" className="text-xs">BPM USNI</Badge>
-                          <Badge variant="outline" className="text-xs">SPMI</Badge>
+                          {news.tags && news.tags.length > 0 ? (
+                            news.tags.map((tag) => (
+                              <Link key={tag.id} href={`/berita/tag/${tag.slug}`}>
+                                <Badge 
+                                  variant="outline" 
+                                  className="text-xs cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                                >
+                                  {tag.name}
+                                </Badge>
+                              </Link>
+                            ))
+                          ) : (
+                            <Badge variant="outline" className="text-xs">Berita</Badge>
+                          )}
                         </div>
                       </div>
                     </div>

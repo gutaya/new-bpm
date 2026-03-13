@@ -38,34 +38,26 @@ import {
   Clock,
   FileText,
   ExternalLink,
-  Filter,
-  FolderOpen,
+  Menu,
 } from 'lucide-react';
 import { DeleteConfirmationDialog } from '@/components/admin/DeleteConfirmationDialog';
 import { PaginationControls } from '@/components/admin/PaginationControls';
 import { toast } from 'sonner';
 import AdminLayout from '@/components/admin/AdminLayout';
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  isActive: boolean;
-}
-
 interface Document {
   id: string;
   title: string;
   description: string | null;
   fileUrl: string | null;
-  category: string;
-  categoryId: string | null;
+  menuItemId: string | null;
   published: boolean;
   createdAt: Date;
   updatedAt: Date;
-  categoryRef: {
+  menuItem: {
     id: string;
-    name: string;
+    title: string;
+    url: string | null;
   } | null;
 }
 
@@ -78,16 +70,15 @@ interface PaginationInfo {
 
 export default function DokumenAdminPage() {
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuItems, setMenuItems] = useState<{id: string; title: string}[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterMenu, setFilterMenu] = useState<string>('all');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [isBulkDeleting, setIsBulkDeleting] = useState(false);
   
-  // Pagination state
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
     pageSize: 10,
@@ -96,14 +87,13 @@ export default function DokumenAdminPage() {
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchMenuItems();
   }, []);
 
   useEffect(() => {
     fetchDocuments();
-  }, [pagination.page, pagination.pageSize, filterCategory]);
+  }, [pagination.page, pagination.pageSize, filterMenu]);
 
-  // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
       if (pagination.page !== 1) {
@@ -115,15 +105,26 @@ export default function DokumenAdminPage() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const fetchCategories = async () => {
+  const fetchMenuItems = async () => {
     try {
-      const response = await fetch('/api/admin/kategori-dokumen');
+      const response = await fetch('/api/admin/menu?includeAll=true');
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.filter((cat: Category) => cat.isActive));
+        const dokumenParent = data.find((item: {parentId: string | null; isActive: boolean; title: string}) => 
+          !item.parentId && item.isActive && item.title.toLowerCase() === 'dokumen'
+        );
+        
+        if (dokumenParent) {
+          const dokumenSubMenus = data.filter((item: {parentId: string | null; isActive: boolean}) => 
+            item.parentId === dokumenParent.id && item.isActive
+          );
+          setMenuItems(dokumenSubMenus);
+        } else {
+          setMenuItems([]);
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
+      console.error('Failed to fetch menu items:', error);
     }
   };
 
@@ -134,7 +135,7 @@ export default function DokumenAdminPage() {
       params.append('page', String(pagination.page));
       params.append('pageSize', String(pagination.pageSize));
       if (searchQuery) params.append('search', searchQuery);
-      if (filterCategory !== 'all') params.append('categoryId', filterCategory);
+      if (filterMenu !== 'all') params.append('menuItemId', filterMenu);
 
       const response = await fetch(`/api/admin/dokumen?${params.toString()}`);
       if (response.ok) {
@@ -262,29 +263,17 @@ export default function DokumenAdminPage() {
     });
   };
 
-  const getCategoryLabel = (item: Document) => {
-    if (item.categoryRef) {
-      return item.categoryRef.name;
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    if (text.length <= maxLength) return text;
+    const truncated = text.substring(0, maxLength);
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    if (lastSpaceIndex > 0) {
+      return truncated.substring(0, lastSpaceIndex) + '...';
     }
-    return item.category || 'Tanpa Kategori';
+    return truncated + '...';
   };
 
-  const getCategoryBadgeColor = (item: Document) => {
-    const colors = [
-      'bg-blue-500',
-      'bg-purple-500',
-      'bg-emerald-500',
-      'bg-orange-500',
-      'bg-cyan-500',
-      'bg-pink-500',
-      'bg-yellow-500',
-    ];
-    const categoryName = getCategoryLabel(item);
-    const index = categoryName.length % colors.length;
-    return colors[index];
-  };
-
-  // Action Buttons Component
   const ActionButtons = ({ item }: { item: Document }) => (
     <TooltipProvider>
       <div className="flex items-center justify-end gap-0.5 sm:gap-1">
@@ -302,9 +291,7 @@ export default function DokumenAdminPage() {
                 </a>
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              <p>Lihat File</p>
-            </TooltipContent>
+            <TooltipContent><p>Lihat File</p></TooltipContent>
           </Tooltip>
         )}
 
@@ -321,9 +308,7 @@ export default function DokumenAdminPage() {
               </Link>
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Edit</p>
-          </TooltipContent>
+          <TooltipContent><p>Edit</p></TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -332,18 +317,12 @@ export default function DokumenAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleTogglePublish(item.id, item.published)}
-              className={`h-8 w-8 shrink-0 ${item.published ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 shrink-0 ${item.published ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
-              {item.published ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
+              {item.published ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>{item.published ? 'Sembunyikan' : 'Publikasikan'}</p>
-          </TooltipContent>
+          <TooltipContent><p>{item.published ? 'Sembunyikan' : 'Publikasikan'}</p></TooltipContent>
         </Tooltip>
 
         <Tooltip>
@@ -357,9 +336,7 @@ export default function DokumenAdminPage() {
               <Trash2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
-            <p>Hapus</p>
-          </TooltipContent>
+          <TooltipContent><p>Hapus</p></TooltipContent>
         </Tooltip>
       </div>
     </TooltipProvider>
@@ -375,7 +352,7 @@ export default function DokumenAdminPage() {
               Manajemen Dokumen
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              Kelola dokumen dan file resmi
+              Kelola dokumen berdasarkan sub menu
             </p>
           </div>
           <Button asChild className="bg-[#1B99F4] hover:bg-[#1B99F4]/90 w-full sm:w-auto">
@@ -398,19 +375,16 @@ export default function DokumenAdminPage() {
                 className="pl-10"
               />
             </div>
-            <Select value={filterCategory} onValueChange={(v) => { setFilterCategory(v); setPagination(p => ({ ...p, page: 1 })); }}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filter kategori" />
+            <Select value={filterMenu} onValueChange={(v) => { setFilterMenu(v); setPagination(p => ({ ...p, page: 1 })); }}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <Menu className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter sub menu" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Semua Kategori</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>
-                    <div className="flex items-center gap-2">
-                      <FolderOpen className="h-4 w-4" />
-                      {cat.name}
-                    </div>
+                <SelectItem value="all">Semua Sub Menu</SelectItem>
+                {menuItems.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.title}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -422,7 +396,7 @@ export default function DokumenAdminPage() {
                 className="w-full sm:w-auto gap-2"
               >
                 <Trash2 className="h-4 w-4" />
-                Hapus Terpilih ({selectedIds.length})
+                Hapus ({selectedIds.length})
               </Button>
             )}
           </div>
@@ -442,7 +416,7 @@ export default function DokumenAdminPage() {
               <div className="flex flex-col items-center gap-2">
                 <FileText className="h-8 w-8 text-muted-foreground" />
                 <p className="text-muted-foreground">
-                  {searchQuery || filterCategory !== 'all' ? 'Tidak ada dokumen yang cocok' : 'Belum ada dokumen'}
+                  {searchQuery || filterMenu !== 'all' ? 'Tidak ada dokumen yang cocok' : 'Belum ada dokumen'}
                 </p>
               </div>
             </Card>
@@ -463,16 +437,19 @@ export default function DokumenAdminPage() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm sm:text-base line-clamp-1">{item.title}</p>
-                      {item.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                          {item.description}
-                        </p>
-                      )}
+                      <p className="font-medium text-sm sm:text-base">{truncateText(item.title, 50)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {truncateText(item.description, 60)}
+                      </p>
                       <div className="flex flex-wrap items-center gap-2 mt-2">
-                        <Badge className={`text-xs ${getCategoryBadgeColor(item)}`}>
-                          {getCategoryLabel(item)}
-                        </Badge>
+                        {item.menuItem ? (
+                          <Badge className="bg-[#1B99F4]">
+                            <Menu className="h-3 w-3 mr-1" />
+                            {item.menuItem.title}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Tanpa Menu</Badge>
+                        )}
                         <Badge
                           variant={item.published ? 'default' : 'secondary'}
                           className={`text-xs ${item.published ? 'bg-emerald-500' : ''}`}
@@ -492,7 +469,6 @@ export default function DokumenAdminPage() {
                 </Card>
               ))}
               
-              {/* Pagination */}
               <Card className="p-4">
                 <PaginationControls
                   currentPage={pagination.page}
@@ -522,7 +498,7 @@ export default function DokumenAdminPage() {
                   </TableHead>
                   <TableHead className="w-[50px]">File</TableHead>
                   <TableHead>Judul Dokumen</TableHead>
-                  <TableHead className="w-[120px]">Kategori</TableHead>
+                  <TableHead className="w-[180px]">Sub Menu</TableHead>
                   <TableHead className="w-[100px]">Status</TableHead>
                   <TableHead className="w-[130px]">Tanggal</TableHead>
                   <TableHead className="w-[150px] text-right">Aksi</TableHead>
@@ -544,7 +520,7 @@ export default function DokumenAdminPage() {
                       <div className="flex flex-col items-center gap-2">
                         <FileText className="h-8 w-8 text-muted-foreground" />
                         <p className="text-muted-foreground">
-                          {searchQuery || filterCategory !== 'all' ? 'Tidak ada dokumen yang cocok' : 'Belum ada dokumen'}
+                          {searchQuery || filterMenu !== 'all' ? 'Tidak ada dokumen yang cocok' : 'Belum ada dokumen'}
                         </p>
                       </div>
                     </TableCell>
@@ -556,7 +532,6 @@ export default function DokumenAdminPage() {
                         <Checkbox
                           checked={selectedIds.includes(item.id)}
                           onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
-                          aria-label="Select row"
                         />
                       </TableCell>
                       <TableCell>
@@ -566,18 +541,21 @@ export default function DokumenAdminPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium line-clamp-1">{item.title}</p>
-                          {item.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {item.description}
-                            </p>
-                          )}
+                          <p className="font-medium">{truncateText(item.title, 40)}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {truncateText(item.description, 50)}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={getCategoryBadgeColor(item)}>
-                          {getCategoryLabel(item)}
-                        </Badge>
+                        {item.menuItem ? (
+                          <Badge className="bg-[#1B99F4]">
+                            <Menu className="h-3 w-3 mr-1" />
+                            {item.menuItem.title}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Tanpa Menu</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -587,9 +565,7 @@ export default function DokumenAdminPage() {
                           {item.published ? 'Dipublikasi' : 'Draft'}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        {formatDate(item.createdAt)}
-                      </TableCell>
+                      <TableCell>{formatDate(item.createdAt)}</TableCell>
                       <TableCell className="text-right">
                         <ActionButtons item={item} />
                       </TableCell>
@@ -600,7 +576,6 @@ export default function DokumenAdminPage() {
             </Table>
           </div>
           
-          {/* Pagination */}
           {documents.length > 0 && (
             <div className="border-t px-4 py-4">
               <PaginationControls
@@ -615,7 +590,6 @@ export default function DokumenAdminPage() {
           )}
         </Card>
 
-        {/* Delete Confirmation */}
         <DeleteConfirmationDialog
           open={!!deleteId}
           onOpenChange={(open) => !open && setDeleteId(null)}
@@ -624,12 +598,11 @@ export default function DokumenAdminPage() {
           onConfirm={handleDelete}
         />
 
-        {/* Bulk Delete Confirmation */}
         <DeleteConfirmationDialog
           open={showBulkDelete}
           onOpenChange={(open) => !open && setShowBulkDelete(false)}
           title={`Hapus ${selectedIds.length} Dokumen?`}
-          description="Dokumen yang dipilih akan dihapus secara permanen dan tidak dapat dikembalikan."
+          description="Dokumen yang dipilih akan dihapus secara permanen."
           onConfirm={handleBulkDelete}
           loading={isBulkDeleting}
         />

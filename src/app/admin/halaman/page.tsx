@@ -40,6 +40,8 @@ interface StaticPage {
   slug: string;
   description: string | null;
   menuCategory: string | null;
+  parentMenu: string | null;
+  showInMenu: boolean;
   orderIndex: number;
   published: boolean;
   createdAt: Date;
@@ -130,6 +132,25 @@ export default function HalamanStatisAdminPage() {
     });
   };
 
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
+    if (text.length <= maxLength) return text;
+    
+    // Potong teks
+    let truncated = text.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+  };
+
   // Action Buttons Component
   const ActionButtons = ({ item }: { item: StaticPage }) => (
     <TooltipProvider>
@@ -160,7 +181,7 @@ export default function HalamanStatisAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleTogglePublish(item.id, item.published)}
-              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.published ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.published ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
               {item.published ? (
                 <EyeOff className="h-4 w-4" />
@@ -256,7 +277,7 @@ export default function HalamanStatisAdminPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm sm:text-base line-clamp-2">{item.title}</p>
+                        <p className="font-medium text-sm sm:text-base">{truncateText(item.title, 50)}</p>
                         <p className="text-xs text-muted-foreground mt-1">/{item.slug}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <Badge
@@ -265,9 +286,14 @@ export default function HalamanStatisAdminPage() {
                           >
                             {item.published ? 'Dipublikasi' : 'Draft'}
                           </Badge>
-                          {item.menuCategory && (
+                          {item.showInMenu && (
+                            <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                              Di Menu
+                            </Badge>
+                          )}
+                          {item.parentMenu && (
                             <Badge variant="outline" className="text-xs">
-                              {item.menuCategory}
+                              {item.parentMenu}
                             </Badge>
                           )}
                         </div>
@@ -295,9 +321,10 @@ export default function HalamanStatisAdminPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Judul</TableHead>
-                  <TableHead className="w-[200px]">Slug</TableHead>
-                  <TableHead className="w-[150px]">Kategori</TableHead>
-                  <TableHead className="w-[120px]">Status</TableHead>
+                  <TableHead className="w-[150px]">Slug</TableHead>
+                  <TableHead className="w-[120px]">Menu Induk</TableHead>
+                  <TableHead className="w-[100px]">Di Menu</TableHead>
+                  <TableHead className="w-[100px]">Status</TableHead>
                   <TableHead className="w-[130px]">Diperbarui</TableHead>
                   <TableHead className="w-[130px] text-right">Aksi</TableHead>
                 </TableRow>
@@ -305,7 +332,7 @@ export default function HalamanStatisAdminPage() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex items-center justify-center gap-2">
                         <Clock className="h-4 w-4 animate-spin" />
                         Memuat data...
@@ -314,7 +341,7 @@ export default function HalamanStatisAdminPage() {
                   </TableRow>
                 ) : filteredPages.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <div className="flex flex-col items-center gap-2">
                         <FileText className="h-8 w-8 text-muted-foreground" />
                         <p className="text-muted-foreground">
@@ -328,10 +355,10 @@ export default function HalamanStatisAdminPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium line-clamp-1">{item.title}</p>
+                          <p className="font-medium">{truncateText(item.title, 40)}</p>
                           {item.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-1">
-                              {item.description}
+                            <p className="text-sm text-muted-foreground">
+                              {truncateText(item.description, 60)}
                             </p>
                           )}
                         </div>
@@ -342,12 +369,21 @@ export default function HalamanStatisAdminPage() {
                         </code>
                       </TableCell>
                       <TableCell>
-                        {item.menuCategory ? (
-                          <Badge variant="outline">
-                            {item.menuCategory}
+                        {item.parentMenu ? (
+                          <Badge variant="outline" className="capitalize">
+                            {item.parentMenu}
                           </Badge>
                         ) : (
                           <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {item.showInMenu ? (
+                          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                            Ya
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground">Tidak</span>
                         )}
                       </TableCell>
                       <TableCell>

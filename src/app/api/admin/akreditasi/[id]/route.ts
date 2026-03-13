@@ -20,6 +20,21 @@ export async function GET(
             slug: true,
           },
         },
+        studyProgram: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            degreeLevel: true,
+            faculty: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -47,7 +62,9 @@ export async function PATCH(
       description,
       category,
       categoryId,
+      studyProgramId,
       accreditationBody,
+      accreditationStatus,
       certificateUrl,
       imageUrl,
       validUntil,
@@ -60,7 +77,9 @@ export async function PATCH(
     if (description !== undefined) updateData.description = description;
     if (category !== undefined) updateData.category = category;
     if (categoryId !== undefined) updateData.categoryId = categoryId || null;
+    if (studyProgramId !== undefined) updateData.studyProgramId = studyProgramId || null;
     if (accreditationBody !== undefined) updateData.accreditationBody = accreditationBody;
+    if (accreditationStatus !== undefined) updateData.accreditationStatus = accreditationStatus || null;
     if (certificateUrl !== undefined) updateData.certificateUrl = certificateUrl || null;
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl || null;
     if (validUntil !== undefined) updateData.validUntil = validUntil ? new Date(validUntil) : null;
@@ -75,6 +94,21 @@ export async function PATCH(
             id: true,
             name: true,
             slug: true,
+          },
+        },
+        studyProgram: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+            degreeLevel: true,
+            faculty: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
           },
         },
       },

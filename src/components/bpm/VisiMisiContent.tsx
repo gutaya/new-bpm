@@ -1,9 +1,73 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
-import { Eye, Target, Flag, CircleCheckBig } from 'lucide-react';
+import { Eye, Target, Flag, CircleCheckBig, Loader2 } from 'lucide-react';
+
+interface VisionMissionData {
+  vision: string;
+  mission: string;
+  goals: string | null;
+}
 
 export default function VisiMisiContent() {
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<VisionMissionData | null>(null);
+
+  useEffect(() => {
+    fetchVisionMission();
+  }, []);
+
+  const fetchVisionMission = async () => {
+    try {
+      const response = await fetch('/api/visi-misi');
+      if (response.ok) {
+        const result = await response.json();
+        setData(result);
+      }
+    } catch (error) {
+      console.error('Error fetching vision & mission:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Parse mission text into array of items
+  const parseMissionItems = (missionText: string) => {
+    if (!missionText) return [];
+    // Split by numbered list pattern (1., 2., etc.)
+    const lines = missionText.split('\n').filter(line => line.trim());
+    return lines.map(line => {
+      // Remove leading numbers and dots
+      return line.replace(/^\d+\.\s*/, '').trim();
+    }).filter(line => line.length > 0);
+  };
+
+  // Parse goals text into array of items
+  const parseGoalsItems = (goalsText: string | null) => {
+    if (!goalsText) return [];
+    const lines = goalsText.split('\n').filter(line => line.trim());
+    return lines.map(line => {
+      // Remove leading dashes or bullets
+      return line.replace(/^[-•]\s*/, '').trim();
+    }).filter(line => line.length > 0);
+  };
+
+  if (loading) {
+    return (
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const missionItems = data ? parseMissionItems(data.mission) : [];
+  const goalItems = data?.goals ? parseGoalsItems(data.goals) : [];
+
   return (
     <section className="py-16 bg-background">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -17,7 +81,7 @@ export default function VisiMisiContent() {
             <h2 className="text-2xl font-display font-bold">Visi</h2>
           </div>
           <p className="text-xl leading-relaxed">
-            Menjadi lembaga penjaminan mutu yang unggul dan terpercaya dalam mewujudkan budaya mutu di lingkungan Universitas Satya Negara Indonesia.
+            {data?.vision || 'Visi belum diatur'}
           </p>
         </div>
 
@@ -29,91 +93,41 @@ export default function VisiMisiContent() {
             </div>
             <h2 className="text-2xl font-display font-bold text-foreground">Misi</h2>
           </div>
-          <ul className="space-y-4">
-            <li className="flex items-start gap-4">
-              <span className="w-8 h-8 rounded-full bg-[#D9F3FC] text-[#0D93F2] flex items-center justify-center text-sm font-bold flex-shrink-0">
-                1
-              </span>
-              <span className="text-muted-foreground pt-1">
-                Mengembangkan sistem penjaminan mutu internal yang efektif dan efisien
-              </span>
-            </li>
-            <li className="flex items-start gap-4">
-              <span className="w-8 h-8 rounded-full bg-[#D9F3FC] text-[#0D93F2] flex items-center justify-center text-sm font-bold flex-shrink-0">
-                2
-              </span>
-              <span className="text-muted-foreground pt-1">
-                Melaksanakan monitoring dan evaluasi mutu secara berkelanjutan
-              </span>
-            </li>
-            <li className="flex items-start gap-4">
-              <span className="w-8 h-8 rounded-full bg-[#D9F3FC] text-[#0D93F2] flex items-center justify-center text-sm font-bold flex-shrink-0">
-                3
-              </span>
-              <span className="text-muted-foreground pt-1">
-                Memfasilitasi peningkatan mutu akademik dan non-akademik
-              </span>
-            </li>
-            <li className="flex items-start gap-4">
-              <span className="w-8 h-8 rounded-full bg-[#D9F3FC] text-[#0D93F2] flex items-center justify-center text-sm font-bold flex-shrink-0">
-                4
-              </span>
-              <span className="text-muted-foreground pt-1">
-                Mendorong tercapainya akreditasi unggul pada tingkat institusi dan program studi
-              </span>
-            </li>
-            <li className="flex items-start gap-4">
-              <span className="w-8 h-8 rounded-full bg-[#D9F3FC] text-[#0D93F2] flex items-center justify-center text-sm font-bold flex-shrink-0">
-                5
-              </span>
-              <span className="text-muted-foreground pt-1">
-                Membangun kerjasama dengan lembaga penjaminan mutu nasional dan internasional
-              </span>
-            </li>
-          </ul>
+          {missionItems.length > 0 ? (
+            <ul className="space-y-4">
+              {missionItems.map((item, index) => (
+                <li key={index} className="flex items-start gap-4">
+                  <span className="w-8 h-8 rounded-full bg-[#D9F3FC] text-[#0D93F2] flex items-center justify-center text-sm font-bold flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  <span className="text-muted-foreground pt-1">{item}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-muted-foreground">Misi belum diatur</p>
+          )}
         </Card>
 
         {/* Tujuan Card */}
-        <Card className="bg-card rounded-2xl p-8 shadow-card border border-border">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Flag className="h-6 w-6 text-primary" />
+        {goalItems.length > 0 && (
+          <Card className="bg-card rounded-2xl p-8 shadow-card border border-border">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Flag className="h-6 w-6 text-primary" />
+              </div>
+              <h2 className="text-2xl font-display font-bold text-foreground">Tujuan</h2>
             </div>
-            <h2 className="text-2xl font-display font-bold text-foreground">Tujuan</h2>
-          </div>
-          <ul className="space-y-4">
-            <li className="flex items-start gap-3">
-              <CircleCheckBig className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">
-                Terwujudnya sistem penjaminan mutu internal yang terintegrasi
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CircleCheckBig className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">
-                Tercapainya standar mutu pendidikan tinggi yang ditetapkan
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CircleCheckBig className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">
-                Meningkatnya kepuasan pemangku kepentingan
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CircleCheckBig className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">
-                Tercapainya akreditasi institusi dan program studi yang unggul
-              </span>
-            </li>
-            <li className="flex items-start gap-3">
-              <CircleCheckBig className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-              <span className="text-muted-foreground">
-                Terbentuknya budaya mutu di seluruh unit kerja
-              </span>
-            </li>
-          </ul>
-        </Card>
+            <ul className="space-y-4">
+              {goalItems.map((item, index) => (
+                <li key={index} className="flex items-start gap-3">
+                  <CircleCheckBig className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                  <span className="text-muted-foreground">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
 
       </div>
     </section>

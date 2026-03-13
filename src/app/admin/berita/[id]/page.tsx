@@ -7,12 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, Loader2, ImagePlus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, ImagePlus, X, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { WysiwygEditor } from '@/components/admin/WysiwygEditor';
+
+interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -30,17 +36,38 @@ export default function EditBeritaPage({ params }: PageProps) {
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
-    excerpt: '',
     content: '',
     imageUrl: '',
     published: false,
   });
+  
+  // Tags state
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [newTagName, setNewTagName] = useState('');
+  const [showTagInput, setShowTagInput] = useState(false);
+  const [creatingTag, setCreatingTag] = useState(false);
 
   useEffect(() => {
+    fetchTags();
     if (!isNew) {
       fetchNews();
+    } else {
+      setLoading(false);
     }
   }, [isNew, resolvedParams.id]);
+
+  const fetchTags = async () => {
+    try {
+      const response = await fetch('/api/admin/tags');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableTags(data);
+      }
+    } catch (error) {
+      console.error('Error fetching tags:', error);
+    }
+  };
 
   const fetchNews = async () => {
     try {
@@ -50,11 +77,11 @@ export default function EditBeritaPage({ params }: PageProps) {
         setFormData({
           title: data.title || '',
           slug: data.slug || '',
-          excerpt: data.excerpt || '',
           content: data.content || '',
           imageUrl: data.imageUrl || '',
           published: data.published || false,
         });
+        setSelectedTagIds(data.tags?.map((t: Tag) => t.id) || []);
       } else {
         toast.error('Berita tidak ditemukan');
         router.push('/admin/berita');
@@ -113,6 +140,44 @@ export default function EditBeritaPage({ params }: PageProps) {
     e.target.value = '';
   };
 
+  const toggleTag = (tagId: string) => {
+    setSelectedTagIds((prev) =>
+      prev.includes(tagId)
+        ? prev.filter((id) => id !== tagId)
+        : [...prev, tagId]
+    );
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+    
+    setCreatingTag(true);
+    try {
+      const response = await fetch('/api/admin/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newTagName.trim() }),
+      });
+
+      if (response.ok) {
+        const newTag = await response.json();
+        setAvailableTags((prev) => [...prev, newTag]);
+        setSelectedTagIds((prev) => [...prev, newTag.id]);
+        setNewTagName('');
+        setShowTagInput(false);
+        toast.success('Tag berhasil dibuat');
+      } else {
+        const error = await response.json();
+        toast.error(error.error || 'Gagal membuat tag');
+      }
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      toast.error('Gagal membuat tag');
+    } finally {
+      setCreatingTag(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -140,6 +205,7 @@ export default function EditBeritaPage({ params }: PageProps) {
         body: JSON.stringify({
           ...formData,
           publishedAt: formData.published ? new Date() : null,
+          tagIds: selectedTagIds,
         }),
       });
 
@@ -210,20 +276,6 @@ export default function EditBeritaPage({ params }: PageProps) {
                 />
               </div>
 
-              {/* Excerpt */}
-              <div className="space-y-2">
-                <Label htmlFor="excerpt">Ringkasan</Label>
-                <Textarea
-                  id="excerpt"
-                  value={formData.excerpt}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, excerpt: e.target.value }))
-                  }
-                  placeholder="Ringkasan singkat berita (opsional)"
-                  rows={2}
-                />
-              </div>
-
               {/* Content - WYSIWYG Editor */}
               <div className="space-y-2">
                 <Label htmlFor="content">Konten *</Label>
@@ -290,16 +342,117 @@ export default function EditBeritaPage({ params }: PageProps) {
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Publish Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pengaturan Publikasi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
+              {/* Tags */}
+              <div className="space-y-2">
+                <Label>Tag</Label>
+                
+                {/* Selected Tags - with remove buttons */}
+                {selectedTagIds.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-xs text-muted-foreground mb-2">Tag dipilih:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {availableTags
+                        .filter((tag) => selectedTagIds.includes(tag.id))
+                        .map((tag) => (
+                          <Badge
+                            key={tag.id}
+                            className="bg-primary text-primary-foreground pr-1 gap-1"
+                          >
+                            {tag.name}
+                            <button
+                              type="button"
+                              onClick={() => toggleTag(tag.id)}
+                              className="ml-1 hover:bg-white/20 rounded-full p-0.5 transition-colors"
+                              title="Hapus tag"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Available Tags - click to add */}
+                <div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {selectedTagIds.length > 0 ? 'Tag lainnya (klik untuk menambah):' : 'Pilih tag (klik untuk menambah):'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {availableTags
+                      .filter((tag) => !selectedTagIds.includes(tag.id))
+                      .map((tag) => (
+                        <Badge
+                          key={tag.id}
+                          variant="outline"
+                          className="cursor-pointer hover:bg-secondary transition-colors"
+                          onClick={() => toggleTag(tag.id)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          {tag.name}
+                        </Badge>
+                      ))}
+                    {availableTags.filter((tag) => !selectedTagIds.includes(tag.id)).length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">Semua tag sudah dipilih</p>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Create new tag */}
+                {showTagInput ? (
+                  <div className="flex gap-2 mt-3">
+                    <Input
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      placeholder="Nama tag baru"
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleCreateTag();
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleCreateTag}
+                      disabled={creatingTag || !newTagName.trim()}
+                    >
+                      {creatingTag ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Tambah'}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setShowTagInput(false);
+                        setNewTagName('');
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTagInput(true)}
+                    className="gap-1 mt-3"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Tambah Tag Baru
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Klik tag untuk memilih, klik X untuk menghapus tag yang dipilih.
+                </p>
+              </div>
+
+              {/* Status Publikasi */}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
                 <div className="space-y-0.5">
                   <Label htmlFor="published">Status Publikasi</Label>
                   <p className="text-sm text-muted-foreground">

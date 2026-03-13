@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
         data: {
           siteName: 'Website Resmi',
           siteTagline: 'Portal Informasi',
+          siteDescription: 'Deskripsi singkat tentang website ini.',
           footerText: '© 2024 Website Resmi. All rights reserved.',
         },
       });
@@ -48,8 +49,12 @@ async function updateIdentity(request: NextRequest) {
         data: {
           siteName: body.siteName || null,
           siteTagline: body.siteTagline || null,
+          siteDescription: body.siteDescription || null,
           logoUrl: body.logoUrl || null,
           faviconUrl: body.faviconUrl || null,
+          heroTitle: body.heroTitle || null,
+          heroSubtitle: body.heroSubtitle || null,
+          heroDescription: body.heroDescription || null,
           contactEmail: body.contactEmail || null,
           contactPhone: body.contactPhone || null,
           contactAddress: body.contactAddress || null,
@@ -69,8 +74,12 @@ async function updateIdentity(request: NextRequest) {
 
       if (body.siteName !== undefined) updateData.siteName = body.siteName || null;
       if (body.siteTagline !== undefined) updateData.siteTagline = body.siteTagline || null;
+      if (body.siteDescription !== undefined) updateData.siteDescription = body.siteDescription || null;
       if (body.logoUrl !== undefined) updateData.logoUrl = body.logoUrl || null;
       if (body.faviconUrl !== undefined) updateData.faviconUrl = body.faviconUrl || null;
+      if (body.heroTitle !== undefined) updateData.heroTitle = body.heroTitle || null;
+      if (body.heroSubtitle !== undefined) updateData.heroSubtitle = body.heroSubtitle || null;
+      if (body.heroDescription !== undefined) updateData.heroDescription = body.heroDescription || null;
       if (body.contactEmail !== undefined) updateData.contactEmail = body.contactEmail || null;
       if (body.contactPhone !== undefined) updateData.contactPhone = body.contactPhone || null;
       if (body.contactAddress !== undefined) updateData.contactAddress = body.contactAddress || null;

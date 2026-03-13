@@ -241,11 +241,11 @@ export default function BackupRestorePage() {
           </Card>
 
           {/* Restore Card */}
-          <Card className="border-2 border-transparent hover:border-orange-400/30 transition-colors">
+          <Card className="border-2 border-transparent hover:border-[#1B99F4]/30 transition-colors">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-3 rounded-lg bg-orange-100 dark:bg-orange-900/30">
-                  <Upload className="h-6 w-6 text-orange-600" />
+                <div className="p-3 rounded-lg bg-[#1B99F4]/10 dark:bg-[#1B99F4]/20">
+                  <Upload className="h-6 w-6 text-[#1B99F4]" />
                 </div>
                 <div>
                   <CardTitle className="text-lg">Restore Database</CardTitle>
@@ -290,7 +290,7 @@ export default function BackupRestorePage() {
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="w-full border-orange-400 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30"
+                className="w-full border-[#1B99F4] text-[#1B99F4] hover:bg-[#1B99F4]/10 dark:hover:bg-[#1B99F4]/20"
               >
                 {uploading ? (
                   <>

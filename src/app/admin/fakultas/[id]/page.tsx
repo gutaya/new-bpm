@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -27,7 +26,6 @@ export default function EditFakultasPage({ params }: PageProps) {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
-    description: '',
     deanName: '',
     orderIndex: 0,
     isActive: true,
@@ -36,8 +34,26 @@ export default function EditFakultasPage({ params }: PageProps) {
   useEffect(() => {
     if (!isNew) {
       fetchFaculty();
+    } else {
+      // Auto-fill orderIndex for new faculty
+      fetchNextOrderIndex();
     }
   }, [isNew, resolvedParams.id]);
+
+  const fetchNextOrderIndex = async () => {
+    try {
+      const response = await fetch('/api/admin/fakultas');
+      if (response.ok) {
+        const data = await response.json();
+        const maxOrder = data.length > 0 ? Math.max(...data.map((f: { orderIndex: number }) => f.orderIndex || 0)) : 0;
+        setFormData((prev) => ({ ...prev, orderIndex: maxOrder + 1 }));
+      }
+    } catch (error) {
+      console.error('Error fetching order index:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchFaculty = async () => {
     try {
@@ -47,7 +63,6 @@ export default function EditFakultasPage({ params }: PageProps) {
         setFormData({
           name: data.name || '',
           code: data.code || '',
-          description: data.description || '',
           deanName: data.deanName || '',
           orderIndex: data.orderIndex ?? 0,
           isActive: data.isActive ?? true,
@@ -90,8 +105,15 @@ export default function EditFakultasPage({ params }: PageProps) {
         toast.success(isNew ? 'Fakultas berhasil dibuat' : 'Fakultas berhasil diperbarui');
         router.push('/admin/fakultas');
       } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save');
+        let errorMessage = 'Gagal menyimpan fakultas';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Response body is empty or not JSON
+          errorMessage = `Gagal menyimpan fakultas (Status: ${response.status})`;
+        }
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Save error:', error);
@@ -142,34 +164,34 @@ export default function EditFakultasPage({ params }: PageProps) {
               <CardTitle className="text-lg">Informasi Fakultas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Name */}
-              <div className="space-y-2">
-                <Label htmlFor="name">Nama Fakultas *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                  placeholder="Masukkan nama fakultas"
-                  required
-                />
-              </div>
+              {/* Code and Name */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {/* Code */}
+                <div className="space-y-2">
+                  <Label htmlFor="code">Kode Fakultas</Label>
+                  <Input
+                    id="code"
+                    value={formData.code}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, code: e.target.value }))
+                    }
+                    placeholder="Contoh: FT"
+                  />
+                </div>
 
-              {/* Code */}
-              <div className="space-y-2">
-                <Label htmlFor="code">Kode Fakultas</Label>
-                <Input
-                  id="code"
-                  value={formData.code}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, code: e.target.value }))
-                  }
-                  placeholder="Contoh: FT, FKIP, FH"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Kode singkat untuk identifikasi fakultas (opsional)
-                </p>
+                {/* Name */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="name">Nama Fakultas *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    placeholder="Masukkan nama fakultas"
+                    required
+                  />
+                </div>
               </div>
 
               {/* Dean Name */}
@@ -185,50 +207,8 @@ export default function EditFakultasPage({ params }: PageProps) {
                 />
               </div>
 
-              {/* Description */}
-              <div className="space-y-2">
-                <Label htmlFor="description">Deskripsi</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, description: e.target.value }))
-                  }
-                  placeholder="Deskripsi singkat tentang fakultas (opsional)"
-                  rows={3}
-                />
-              </div>
-
-              {/* Order Index */}
-              <div className="space-y-2">
-                <Label htmlFor="orderIndex">Urutan Tampil</Label>
-                <Input
-                  id="orderIndex"
-                  type="number"
-                  min="0"
-                  value={formData.orderIndex}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      orderIndex: parseInt(e.target.value) || 0,
-                    }))
-                  }
-                  placeholder="0"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Nomor urutan untuk pengurutan tampilan (angka lebih kecil ditampilkan lebih dulu)
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pengaturan Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
+              {/* Status Aktif */}
+              <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5">
                   <Label htmlFor="isActive">Status Aktif</Label>
                   <p className="text-sm text-muted-foreground">
@@ -243,6 +223,9 @@ export default function EditFakultasPage({ params }: PageProps) {
                   }
                 />
               </div>
+
+              {/* Hidden Order Index */}
+              <input type="hidden" value={formData.orderIndex} />
             </CardContent>
           </Card>
 

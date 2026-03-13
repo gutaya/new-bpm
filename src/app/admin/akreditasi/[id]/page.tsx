@@ -28,13 +28,22 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-interface AccreditationCategory {
+interface Faculty {
   id: string;
   name: string;
-  slug: string;
+  code: string | null;
 }
 
-const ACCREDITATION_BODY_OPTIONS = [
+interface StudyProgram {
+  id: string;
+  name: string;
+  code: string | null;
+  degreeLevel: string;
+  facultyId: string | null;
+  faculty?: Faculty | null;
+}
+
+const ACCREDITATION_BODY_NASIONAL = [
   { value: 'ban-pt', label: 'BAN-PT' },
   { value: 'lam-teknik', label: 'LAM Teknik' },
   { value: 'lam-infokom', label: 'LAM Infokom' },
@@ -42,10 +51,45 @@ const ACCREDITATION_BODY_OPTIONS = [
   { value: 'lamspak', label: 'LAMSPAK' },
 ];
 
+const ACCREDITATION_BODY_INTERNASIONAL = [
+  { value: 'hkcaavq', label: 'HKCAAVQ' },
+  { value: 'heeact', label: 'HEEACT' },
+  { value: 'teqsa', label: 'TEQSA' },
+  { value: 'aacsb', label: 'AACSB' },
+  { value: 'amba', label: 'AMBA' },
+  { value: 'equis', label: 'EQUIS' },
+  { value: 'iacbe', label: 'IACBE' },
+  { value: 'aapbs', label: 'AAPBS' },
+  { value: 'acbsp', label: 'ACBSP' },
+  { value: 'rsc', label: 'RSC' },
+  { value: 'rci', label: 'RCI' },
+  { value: 'caep', label: 'CAEP' },
+];
+
 const CATEGORY_OPTIONS = [
   { value: 'nasional', label: 'Nasional' },
   { value: 'internasional', label: 'Internasional' },
 ];
+
+const ACCREDITATION_STATUS_OPTIONS_NASIONAL = [
+  { value: 'Unggul', label: 'Unggul' },
+  { value: 'Baik Sekali', label: 'Baik Sekali' },
+  { value: 'Baik', label: 'Baik' },
+  { value: 'A', label: 'A' },
+  { value: 'B', label: 'B' },
+  { value: 'C', label: 'C' },
+];
+
+const ACCREDITATION_STATUS_OPTIONS_INTERNASIONAL = [
+  { value: 'Terakreditasi', label: 'Terakreditasi' },
+];
+
+const degreeLevelLabels: Record<string, string> = {
+  d3: 'D3',
+  s1: 'S1',
+  s2: 'S2',
+  s3: 'S3',
+};
 
 export default function EditAkreditasiPage({ params }: PageProps) {
   const resolvedParams = use(params);
@@ -55,16 +99,19 @@ export default function EditAkreditasiPage({ params }: PageProps) {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [categories, setCategories] = useState<AccreditationCategory[]>([]);
+  const [faculties, setFaculties] = useState<Faculty[]>([]);
+  const [studyPrograms, setStudyPrograms] = useState<StudyProgram[]>([]);
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
   const imageInputRef = useRef<HTMLInputElement>(null);
   const certificateInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: 'nasional',
-    categoryId: '',
+    studyProgramId: '',
     accreditationBody: 'ban-pt',
+    accreditationStatus: '',
     certificateUrl: '',
     imageUrl: '',
     validUntil: null as Date | null,
@@ -72,23 +119,36 @@ export default function EditAkreditasiPage({ params }: PageProps) {
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchFaculties();
+    fetchStudyPrograms();
     if (!isNew) {
       fetchAccreditation();
+    } else {
+      setLoading(false);
     }
   }, [isNew, resolvedParams.id]);
 
-  const fetchCategories = async () => {
+  const fetchFaculties = async () => {
     try {
-      const response = await fetch('/api/admin/kategori-dokumen');
+      const response = await fetch('/api/admin/fakultas');
       if (response.ok) {
         const data = await response.json();
-        // Filter only active categories
-        const activeCategories = data.filter((cat: AccreditationCategory & { isActive: boolean }) => cat.isActive);
-        setCategories(activeCategories);
+        setFaculties(data.filter((f: Faculty & { isActive: boolean }) => f.isActive));
       }
     } catch (error) {
-      console.error('Error fetching categories:', error);
+      console.error('Error fetching faculties:', error);
+    }
+  };
+
+  const fetchStudyPrograms = async () => {
+    try {
+      const response = await fetch('/api/admin/prodi');
+      if (response.ok) {
+        const data = await response.json();
+        setStudyPrograms(data.filter((p: StudyProgram & { isActive: boolean }) => p.isActive));
+      }
+    } catch (error) {
+      console.error('Error fetching study programs:', error);
     }
   };
 
@@ -101,13 +161,18 @@ export default function EditAkreditasiPage({ params }: PageProps) {
           title: data.title || '',
           description: data.description || '',
           category: data.category || 'nasional',
-          categoryId: data.categoryId || '',
+          studyProgramId: data.studyProgramId || '',
           accreditationBody: data.accreditationBody || 'ban-pt',
+          accreditationStatus: data.accreditationStatus || '',
           certificateUrl: data.certificateUrl || '',
           imageUrl: data.imageUrl || '',
           validUntil: data.validUntil ? new Date(data.validUntil) : null,
           published: data.published ?? true,
         });
+        // Set selected faculty based on study program
+        if (data.studyProgram?.facultyId) {
+          setSelectedFacultyId(data.studyProgram.facultyId);
+        }
       } else {
         toast.error('Akreditasi tidak ditemukan');
         router.push('/admin/akreditasi');
@@ -118,6 +183,38 @@ export default function EditAkreditasiPage({ params }: PageProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Filter study programs by selected faculty
+  const filteredStudyPrograms = selectedFacultyId
+    ? studyPrograms.filter((sp) => sp.facultyId === selectedFacultyId)
+    : studyPrograms;
+
+  // Get accreditation body options based on category
+  const accreditationBodyOptions = formData.category === 'internasional'
+    ? ACCREDITATION_BODY_INTERNASIONAL
+    : ACCREDITATION_BODY_NASIONAL;
+
+  // Get accreditation status options based on category
+  const accreditationStatusOptions = formData.category === 'internasional'
+    ? ACCREDITATION_STATUS_OPTIONS_INTERNASIONAL
+    : ACCREDITATION_STATUS_OPTIONS_NASIONAL;
+
+  // Handle faculty change - reset study program selection
+  const handleFacultyChange = (value: string) => {
+    setSelectedFacultyId(value === 'none' ? '' : value);
+    setFormData((prev) => ({ ...prev, studyProgramId: '' }));
+  };
+
+  // Handle study program selection - auto-fill title
+  const handleStudyProgramChange = (value: string) => {
+    const selectedProgram = studyPrograms.find((sp) => sp.id === value);
+    setFormData((prev) => ({
+      ...prev,
+      studyProgramId: value === 'none' ? '' : value,
+      // Auto-fill title if empty
+      title: prev.title || selectedProgram?.name || '',
+    }));
   };
 
   const handleImageUpload = async (file: File, type: 'image' | 'certificate') => {
@@ -183,7 +280,8 @@ export default function EditAkreditasiPage({ params }: PageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          categoryId: formData.categoryId || null,
+          studyProgramId: formData.studyProgramId || null,
+          accreditationStatus: formData.accreditationStatus || null,
           validUntil: formData.validUntil?.toISOString() || null,
         }),
       });
@@ -240,10 +338,58 @@ export default function EditAkreditasiPage({ params }: PageProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Informasi Akreditasi</CardTitle>
+              <CardTitle className="text-lg">Informasi Program Studi</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Title */}
+              {/* Faculty and Study Program */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Faculty */}
+                <div className="space-y-2">
+                  <Label htmlFor="facultyId">Fakultas</Label>
+                  <Select
+                    value={selectedFacultyId || 'none'}
+                    onValueChange={handleFacultyChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih fakultas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Semua Fakultas</SelectItem>
+                      {faculties.map((faculty) => (
+                        <SelectItem key={faculty.id} value={faculty.id}>
+                          {faculty.code || faculty.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Study Program */}
+                <div className="space-y-2">
+                  <Label htmlFor="studyProgramId">Program Studi</Label>
+                  <Select
+                    value={formData.studyProgramId || 'none'}
+                    onValueChange={handleStudyProgramChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih program studi" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Tidak ada / Institusi</SelectItem>
+                      {filteredStudyPrograms.map((program) => (
+                        <SelectItem key={program.id} value={program.id}>
+                          {program.name}
+                          <span className="text-muted-foreground ml-1">
+                            - {degreeLevelLabels[program.degreeLevel] || 'S1'}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Title (auto-filled from study program) */}
               <div className="space-y-2">
                 <Label htmlFor="title">Judul Akreditasi *</Label>
                 <Input
@@ -255,8 +401,18 @@ export default function EditAkreditasiPage({ params }: PageProps) {
                   placeholder="Masukkan judul akreditasi"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Otomatis terisi berdasarkan program studi yang dipilih
+                </p>
               </div>
+            </CardContent>
+          </Card>
 
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Detail Akreditasi</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description">Deskripsi</Label>
@@ -271,16 +427,19 @@ export default function EditAkreditasiPage({ params }: PageProps) {
                 />
               </div>
 
-              {/* Category Type and Category */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Category Type, Accreditation Body, Status, and Valid Until - 4 columns */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Category Type */}
                 <div className="space-y-2">
                   <Label htmlFor="category">Jenis Kategori</Label>
                   <Select
                     value={formData.category}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, category: value }))
-                    }
+                    onValueChange={(value) => {
+                      // Reset accreditation body and status when category changes
+                      const defaultBody = value === 'internasional' ? 'hkcaavq' : 'ban-pt';
+                      const defaultStatus = value === 'internasional' ? 'Terakreditasi' : '';
+                      setFormData((prev) => ({ ...prev, category: value, accreditationBody: defaultBody, accreditationStatus: defaultStatus }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Pilih jenis kategori" />
@@ -305,10 +464,10 @@ export default function EditAkreditasiPage({ params }: PageProps) {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih lembaga akreditasi" />
+                      <SelectValue placeholder="Pilih lembaga" />
                     </SelectTrigger>
                     <SelectContent>
-                      {ACCREDITATION_BODY_OPTIONS.map((option) => (
+                      {accreditationBodyOptions.map((option) => (
                         <SelectItem key={option.value} value={option.value}>
                           {option.label}
                         </SelectItem>
@@ -316,60 +475,69 @@ export default function EditAkreditasiPage({ params }: PageProps) {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Accreditation Status */}
+                <div className="space-y-2">
+                  <Label htmlFor="accreditationStatus">Status Akreditasi</Label>
+                  <Select
+                    value={formData.accreditationStatus || 'none'}
+                    onValueChange={(value) =>
+                      setFormData((prev) => ({ ...prev, accreditationStatus: value === 'none' ? '' : value }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {formData.category === 'nasional' && (
+                        <SelectItem value="none">Tidak ada</SelectItem>
+                      )}
+                      {accreditationStatusOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Valid Until - Date Picker */}
+                <div className="space-y-2">
+                  <Label>Berlaku Sampai</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start text-left font-normal ${
+                          !formData.validUntil && 'text-muted-foreground'
+                        }`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {formData.validUntil
+                          ? format(formData.validUntil, 'PPP', { locale: id })
+                          : 'Pilih tanggal'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={formData.validUntil || undefined}
+                        onSelect={(date) =>
+                          setFormData((prev) => ({ ...prev, validUntil: date || null }))
+                        }
+                        captionLayout="dropdown"
+                        fromYear={2020}
+                        toYear={2050}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
-              {/* Category Reference */}
-              <div className="space-y-2">
-                <Label htmlFor="categoryId">Kategori Terkait</Label>
-                <Select
-                  value={formData.categoryId || 'none'}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, categoryId: value === 'none' ? '' : value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih kategori (opsional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Tidak ada</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Valid Until - Date Picker */}
-              <div className="space-y-2">
-                <Label>Berlaku Sampai</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={`w-full justify-start text-left font-normal ${
-                        !formData.validUntil && 'text-muted-foreground'
-                      }`}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {formData.validUntil
-                        ? format(formData.validUntil, 'PPP', { locale: id })
-                        : 'Pilih tanggal'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={formData.validUntil || undefined}
-                      onSelect={(date) =>
-                        setFormData((prev) => ({ ...prev, validUntil: date || null }))
-                      }
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                {formData.validUntil && (
+              {/* Clear date button - shown below the grid when date is selected */}
+              {formData.validUntil && (
+                <div className="flex justify-end">
                   <Button
                     type="button"
                     variant="ghost"
@@ -382,8 +550,8 @@ export default function EditAkreditasiPage({ params }: PageProps) {
                     <X className="h-4 w-4 mr-1" />
                     Hapus tanggal
                   </Button>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Image URL */}
               <div className="space-y-2">
@@ -471,16 +639,9 @@ export default function EditAkreditasiPage({ params }: PageProps) {
                   URL sertifikat akreditasi (PDF atau gambar)
                 </p>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Publish Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pengaturan Publikasi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
+              {/* Status Publikasi */}
+              <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5">
                   <Label htmlFor="published">Status Publikasi</Label>
                   <p className="text-sm text-muted-foreground">

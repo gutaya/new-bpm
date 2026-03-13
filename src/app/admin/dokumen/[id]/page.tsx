@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Save, Loader2, Upload, FolderOpen, Plus } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Upload, Menu } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminLayout from '@/components/admin/AdminLayout';
 
@@ -24,11 +24,15 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-interface Category {
+interface MenuItem {
   id: string;
-  name: string;
-  slug: string;
-  isActive: boolean;
+  title: string;
+  url: string | null;
+  parentId: string | null;
+  parent?: {
+    id: string;
+    title: string;
+  } | null;
 }
 
 export default function EditDokumenPage({ params }: PageProps) {
@@ -40,17 +44,17 @@ export default function EditDokumenPage({ params }: PageProps) {
   const [saving, setSaving] = useState(false);
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     fileUrl: '',
-    categoryId: '',
+    menuItemId: '',
     published: true,
   });
 
   useEffect(() => {
-    fetchCategories();
+    fetchMenuItems();
     if (!isNew) {
       fetchDocument();
     } else {
@@ -58,15 +62,28 @@ export default function EditDokumenPage({ params }: PageProps) {
     }
   }, [isNew, resolvedParams.id]);
 
-  const fetchCategories = async () => {
+  const fetchMenuItems = async () => {
     try {
-      const response = await fetch('/api/admin/kategori-dokumen');
+      const response = await fetch('/api/admin/menu?includeAll=true');
       if (response.ok) {
         const data = await response.json();
-        setCategories(data.filter((cat: Category) => cat.isActive));
+        // Find "Dokumen" parent menu (parentId is null and title is "Dokumen")
+        const dokumenParent = data.find((item: MenuItem) => 
+          !item.parentId && item.isActive && item.title.toLowerCase() === 'dokumen'
+        );
+        
+        if (dokumenParent) {
+          // Filter only submenu items under "Dokumen" menu
+          const dokumenSubMenus = data.filter((item: MenuItem) => 
+            item.parentId === dokumenParent.id && item.isActive
+          );
+          setMenuItems(dokumenSubMenus);
+        } else {
+          setMenuItems([]);
+        }
       }
     } catch (error) {
-      console.error('Failed to fetch categories:', error);
+      console.error('Failed to fetch menu items:', error);
     }
   };
 
@@ -79,7 +96,7 @@ export default function EditDokumenPage({ params }: PageProps) {
           title: data.title || '',
           description: data.description || '',
           fileUrl: data.fileUrl || '',
-          categoryId: data.categoryId || '',
+          menuItemId: data.menuItemId || '',
           published: data.published ?? true,
         });
       } else {
@@ -100,7 +117,7 @@ export default function EditDokumenPage({ params }: PageProps) {
       const formDataUpload = new FormData();
       formDataUpload.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/upload-document', {
         method: 'POST',
         body: formDataUpload,
       });
@@ -137,6 +154,11 @@ export default function EditDokumenPage({ params }: PageProps) {
       return;
     }
 
+    if (!formData.menuItemId) {
+      toast.error('Pilih sub menu untuk menampilkan dokumen');
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -152,7 +174,7 @@ export default function EditDokumenPage({ params }: PageProps) {
           title: formData.title,
           description: formData.description,
           fileUrl: formData.fileUrl,
-          categoryId: formData.categoryId || null,
+          menuItemId: formData.menuItemId || null,
           published: formData.published,
         }),
       });
@@ -276,7 +298,7 @@ export default function EditDokumenPage({ params }: PageProps) {
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Format: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX. Maksimal 5MB
+                  Format: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX. Maksimal 10MB
                 </p>
                 {formData.fileUrl && (
                   <div className="mt-2 p-3 bg-muted rounded-lg flex items-center gap-2">
@@ -298,10 +320,10 @@ export default function EditDokumenPage({ params }: PageProps) {
                 )}
               </div>
 
-              {/* Category */}
+              {/* Sub Menu - untuk menentukan di menu Dokumen mana dokumen ditampilkan */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="categoryId">Kategori</Label>
+                  <Label htmlFor="menuItemId">Tampilkan di Sub Menu *</Label>
                   <Button
                     type="button"
                     variant="ghost"
@@ -309,28 +331,31 @@ export default function EditDokumenPage({ params }: PageProps) {
                     asChild
                     className="h-7 text-xs text-[#1B99F4]"
                   >
-                    <Link href="/admin/kategori-dokumen/tambah" target="_blank">
-                      <Plus className="h-3 w-3 mr-1" />
-                      Tambah Kategori
+                    <Link href="/admin/menu" target="_blank">
+                      Kelola Menu
                     </Link>
                   </Button>
                 </div>
-                {categories.length > 0 ? (
+                <p className="text-xs text-muted-foreground -mt-1">
+                  Pilih sub menu di bawah menu Dokumen
+                </p>
+                {menuItems.length > 0 ? (
                   <Select
-                    value={formData.categoryId}
+                    value={formData.menuItemId || 'none'}
                     onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, categoryId: value }))
+                      setFormData((prev) => ({ ...prev, menuItemId: value === 'none' ? '' : value }))
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Pilih kategori" />
+                      <SelectValue placeholder="Pilih sub menu dokumen" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
+                      <SelectItem value="none">Tidak ada (Tidak ditampilkan di menu)</SelectItem>
+                      {menuItems.map((item) => (
+                        <SelectItem key={item.id} value={item.id}>
                           <div className="flex items-center gap-2">
-                            <FolderOpen className="h-4 w-4" />
-                            {cat.name}
+                            <Menu className="h-4 w-4" />
+                            {item.title}
                           </div>
                         </SelectItem>
                       ))}
@@ -338,9 +363,9 @@ export default function EditDokumenPage({ params }: PageProps) {
                   </Select>
                 ) : (
                   <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                    <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                    <Menu className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm text-muted-foreground">
-                      Belum ada kategori aktif
+                      Belum ada sub menu pada menu Dokumen
                     </span>
                     <Button
                       type="button"
@@ -349,36 +374,31 @@ export default function EditDokumenPage({ params }: PageProps) {
                       asChild
                       className="ml-auto text-[#1B99F4]"
                     >
-                      <Link href="/admin/kategori-dokumen/tambah" target="_blank">
-                        Tambah
+                      <Link href="/admin/menu" target="_blank">
+                        Kelola Menu
                       </Link>
                     </Button>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Status Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pengaturan Publikasi</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="published">Status Publikasi</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Aktifkan untuk mempublikasikan dokumen
-                  </p>
+              {/* Status Publikasi */}
+              <div className="space-y-2 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="published">Status Publikasi</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Aktifkan untuk mempublikasikan dokumen
+                    </p>
+                  </div>
+                  <Switch
+                    id="published"
+                    checked={formData.published}
+                    onCheckedChange={(checked) =>
+                      setFormData((prev) => ({ ...prev, published: checked }))
+                    }
+                  />
                 </div>
-                <Switch
-                  id="published"
-                  checked={formData.published}
-                  onCheckedChange={(checked) =>
-                    setFormData((prev) => ({ ...prev, published: checked }))
-                  }
-                />
               </div>
             </CardContent>
           </Card>

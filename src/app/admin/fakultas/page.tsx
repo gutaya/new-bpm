@@ -95,17 +95,17 @@ export default function FakultasAdminPage() {
         method: 'DELETE',
       });
 
+      const data = await response.json();
+
       if (response.ok) {
         setFaculties(faculties.filter((item) => item.id !== deleteId));
         toast.success('Fakultas berhasil dihapus');
       } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete');
+        // Tampilkan pesan error dari server tanpa throw
+        toast.error(data.error || 'Gagal menghapus fakultas');
       }
-    } catch (error: unknown) {
-      console.error('Delete error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus fakultas';
-      toast.error(errorMessage);
+    } catch {
+      toast.error('Gagal menghapus fakultas. Terjadi kesalahan jaringan.');
     } finally {
       setDeleteId(null);
     }
@@ -122,20 +122,19 @@ export default function FakultasAdminPage() {
         body: JSON.stringify({ ids: selectedIds }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const result = await response.json();
         setFaculties(faculties.filter((item) => !selectedIds.includes(item.id)));
         setSelectedIds([]);
         setShowBulkDelete(false);
-        toast.success(`${result.count} fakultas berhasil dihapus`);
+        toast.success(`${data.count} fakultas berhasil dihapus`);
       } else {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete');
+        // Tampilkan pesan error dari server tanpa throw
+        toast.error(data.error || 'Gagal menghapus fakultas');
       }
-    } catch (error: unknown) {
-      console.error('Bulk delete error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Gagal menghapus fakultas';
-      toast.error(errorMessage);
+    } catch {
+      toast.error('Gagal menghapus fakultas. Terjadi kesalahan jaringan.');
     } finally {
       setIsBulkDeleting(false);
     }
@@ -226,7 +225,7 @@ export default function FakultasAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleToggleActive(item.id, item.isActive)}
-              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.isActive ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.isActive ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
               {item.isActive ? (
                 <EyeOff className="h-4 w-4" />

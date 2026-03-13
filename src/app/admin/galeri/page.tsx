@@ -224,6 +224,25 @@ export default function GaleriAdminPage() {
     });
   };
 
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
+    if (text.length <= maxLength) return text;
+    
+    // Potong teks
+    let truncated = text.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+  };
+
   const isAllSelected = filteredImages.length > 0 && selectedIds.length === filteredImages.length;
   const isPartialSelected = selectedIds.length > 0 && selectedIds.length < filteredImages.length;
 
@@ -356,12 +375,10 @@ export default function GaleriAdminPage() {
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
-                          <p className="font-medium line-clamp-1">{item.title}</p>
-                          {item.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-1">
-                              {item.description}
-                            </p>
-                          )}
+                          <p className="font-medium">{truncateText(item.title, 40)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {truncateText(item.description, 50)}
+                          </p>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -415,7 +432,7 @@ export default function GaleriAdminPage() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleToggleActive(item.id, item.isActive)}
-                                  className={`h-8 w-8 ${item.isActive ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+                                  className={`h-8 w-8 ${item.isActive ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
                                 >
                                   {item.isActive ? (
                                     <EyeOff className="h-4 w-4" />
@@ -482,7 +499,7 @@ export default function GaleriAdminPage() {
                     {/* Info */}
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium line-clamp-1">{item.title}</p>
+                        <p className="font-medium">{truncateText(item.title, 40)}</p>
                         <Badge
                           variant={item.isActive ? 'default' : 'secondary'}
                           className={`text-xs flex-shrink-0 ${item.isActive ? 'bg-emerald-500' : ''}`}
@@ -490,9 +507,12 @@ export default function GaleriAdminPage() {
                           {item.isActive ? 'Aktif' : 'Nonaktif'}
                         </Badge>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        {truncateText(item.description, 50)}
+                      </p>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <FolderOpen className="h-3 w-3" />
-                        <span className="line-clamp-1">{item.album?.title || 'Tanpa Album'}</span>
+                        <span>{truncateText(item.album?.title, 20)}</span>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
@@ -517,7 +537,7 @@ export default function GaleriAdminPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => handleToggleActive(item.id, item.isActive)}
-                      className={`h-8 w-8 ${item.isActive ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+                      className={`h-8 w-8 ${item.isActive ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
                     >
                       {item.isActive ? (
                         <EyeOff className="h-4 w-4" />

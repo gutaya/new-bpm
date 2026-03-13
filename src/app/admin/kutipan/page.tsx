@@ -120,10 +120,23 @@ export default function KutipanAdminPage() {
       (item.authorName?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false)
   );
 
-  // Truncate text helper
-  const truncateText = (text: string, maxLength: number) => {
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
     if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    
+    // Potong teks
+    let truncated = text.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
   };
 
   return (
@@ -196,8 +209,8 @@ export default function KutipanAdminPage() {
                     <TableRow key={item.id}>
                       <TableCell>
                         <div className="space-y-1">
-                          <p className="font-medium line-clamp-2">
-                            &quot;{truncateText(item.quoteText, 100)}&quot;
+                          <p className="font-medium">
+                            &quot;{truncateText(item.quoteText, 80)}&quot;
                           </p>
                           {item.imageUrl && (
                             <p className="text-xs text-muted-foreground">📷 Ada gambar</p>
@@ -206,9 +219,9 @@ export default function KutipanAdminPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{item.authorName || '-'}</p>
+                          <p className="font-medium">{truncateText(item.authorName, 25)}</p>
                           {item.authorTitle && (
-                            <p className="text-xs text-muted-foreground">{item.authorTitle}</p>
+                            <p className="text-xs text-muted-foreground">{truncateText(item.authorTitle, 30)}</p>
                           )}
                         </div>
                       </TableCell>
@@ -249,7 +262,7 @@ export default function KutipanAdminPage() {
                                   variant="ghost"
                                   size="icon"
                                   onClick={() => handleToggleActive(item.id, item.isActive)}
-                                  className={`h-8 w-8 shrink-0 ${item.isActive ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+                                  className={`h-8 w-8 shrink-0 ${item.isActive ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
                                 >
                                   {item.isActive ? (
                                     <EyeOff className="h-4 w-4" />

@@ -7,18 +7,34 @@ import { Dialog, DialogContent, DialogTitle, DialogClose } from '@/components/ui
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Images, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
+interface Album {
+  id: string;
+  title: string;
+  description: string | null;
+  coverImageUrl: string | null;
+  _count?: {
+    galleryImages: number;
+  };
+}
+
 interface GalleryImage {
   id: string;
   title: string;
   description: string | null;
   imageUrl: string;
   category: string;
+  albumId: string | null;
+  album?: {
+    id: string;
+    title: string;
+  } | null;
 }
 
 export default function GallerySection() {
   const [images, setImages] = useState<GalleryImage[]>([]);
+  const [albums, setAlbums] = useState<Album[]>([]);
   const [filteredImages, setFilteredImages] = useState<GalleryImage[]>([]);
-  const [activeCategory, setActiveCategory] = useState('Semua');
+  const [activeAlbum, setActiveAlbum] = useState('Semua');
   const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -29,6 +45,17 @@ export default function GallerySection() {
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
 
   useEffect(() => {
+    // Fetch albums first
+    fetch('/api/albums')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setAlbums(data);
+        }
+      })
+      .catch((error) => console.error('Error fetching albums:', error));
+
+    // Fetch all gallery images
     fetch('/api/gallery')
       .then((res) => res.json())
       .then((data) => {
@@ -65,12 +92,12 @@ export default function GallerySection() {
     };
   }, [emblaApi]);
 
-  const handleCategoryChange = (category: string) => {
-    setActiveCategory(category);
-    if (category === 'Semua') {
+  const handleAlbumChange = (albumId: string) => {
+    setActiveAlbum(albumId);
+    if (albumId === 'Semua') {
       setFilteredImages(images);
     } else {
-      setFilteredImages(images.filter((img) => img.category === category));
+      setFilteredImages(images.filter((img) => img.albumId === albumId));
     }
   };
 
@@ -79,10 +106,26 @@ export default function GallerySection() {
     setIsOpen(true);
   };
 
-  // Get unique categories from images, filter out empty/null/undefined
-  const uniqueCategories = ['Semua', ...Array.from(
-    new Set(images.map((img) => img.category).filter(Boolean))
-  )];
+  // Get album name for display
+  const getAlbumName = (image: GalleryImage) => {
+    if (image.album) {
+      return image.album.title;
+    }
+    // Fallback to category if no album
+    return image.category || 'Lainnya';
+  };
+
+  // Create album filter list with "Semua" + albums that have images
+  const albumFilters = [
+    { id: 'Semua', title: 'Semua', count: images.length },
+    ...albums
+      .filter(album => images.some(img => img.albumId === album.id))
+      .map(album => ({
+        id: album.id,
+        title: album.title,
+        count: images.filter(img => img.albumId === album.id).length,
+      }))
+  ];
 
   if (loading) {
     return (
@@ -116,17 +159,18 @@ export default function GallerySection() {
           </div>
         </div>
 
-        {/* Category Filters */}
+        {/* Album Filters */}
         <div className="flex flex-wrap gap-2 mb-8">
-          {uniqueCategories.map((category) => (
+          {albumFilters.map((album) => (
             <Button
-              key={category}
-              variant={activeCategory === category ? 'default' : 'outline'}
+              key={album.id}
+              variant={activeAlbum === album.id ? 'default' : 'outline'}
               size="sm"
-              onClick={() => handleCategoryChange(category)}
+              onClick={() => handleAlbumChange(album.id)}
               className="rounded-full"
             >
-              {category}
+              {album.title}
+              <span className="ml-1.5 text-xs opacity-70">({album.count})</span>
             </Button>
           ))}
         </div>
@@ -233,7 +277,7 @@ export default function GallerySection() {
                         {selectedIndex + 1} / {filteredImages.length}
                       </span>
                       <span className="inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium">
-                        {filteredImages[selectedIndex].category}
+                        {getAlbumName(filteredImages[selectedIndex])}
                       </span>
                     </div>
                   </div>

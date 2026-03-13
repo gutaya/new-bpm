@@ -14,9 +14,18 @@ interface Slide {
   linkUrl: string | null;
 }
 
+interface WebsiteIdentity {
+  siteName: string | null;
+  siteTagline: string | null;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  heroDescription: string | null;
+}
+
 export default function HeroSection() {
   const [slides, setSlides] = useState<Slide[]>([]);
   const [loading, setLoading] = useState(true);
+  const [identity, setIdentity] = useState<WebsiteIdentity | null>(null);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
@@ -24,16 +33,28 @@ export default function HeroSection() {
   const scrollNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
 
   useEffect(() => {
+    // Fetch slideshows
     fetch('/api/slideshow')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setSlides(data);
         }
-        setLoading(false);
       })
       .catch((error) => {
         console.error('Error fetching slideshows:', error);
+      });
+
+    // Fetch website identity
+    fetch('/api/identity')
+      .then((res) => res.json())
+      .then((data) => {
+        setIdentity(data);
+      })
+      .catch((error) => {
+        console.error('Error fetching identity:', error);
+      })
+      .finally(() => {
         setLoading(false);
       });
   }, []);
@@ -49,12 +70,12 @@ export default function HeroSection() {
     return () => clearInterval(interval);
   }, [emblaApi, slides.length]);
 
-  // Default static content if no slides
+  // Default content (fallback if no identity data)
   const defaultContent = {
-    badge: 'Universitas Satya Negara Indonesia',
-    title: 'Selamat Datang di',
-    highlight: 'Badan Penjaminan Mutu',
-    description: 'Menggenggam Mutu, Meningkatkan Daya Saing. Menjadi lembaga terkemuka dan profesional dalam memperkuat layanan pendidikan berbasis budaya mutu untuk mempercepat terwujudnya Visi USNI.',
+    badge: identity?.siteTagline || 'Universitas Satya Negara Indonesia',
+    title: identity?.heroTitle || 'Selamat Datang di',
+    highlight: identity?.heroSubtitle || 'Badan Penjaminan Mutu',
+    description: identity?.heroDescription || 'Menggenggam Mutu, Meningkatkan Daya Saing. Menjadi lembaga terkemuka dan profesional dalam memperkuat layanan pendidikan berbasis budaya mutu untuk mempercepat terwujudnya Visi USNI.',
   };
 
   return (

@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, slug, description, content, icon, menuCategory, orderIndex, published } = body;
+    const { title, slug, description, content, icon, menuCategory, parentMenu, showInMenu, orderIndex, published } = body;
 
     // Generate slug if not provided
     const finalSlug = slug || title
@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
         description,
         content: content || '',
         icon,
-        menuCategory,
+        menuCategory: menuCategory === 'none' ? null : menuCategory,
+        parentMenu: parentMenu === 'none' ? null : parentMenu,
+        showInMenu: showInMenu ?? false,
         orderIndex: orderIndex ?? 0,
         published: published ?? false,
       },

@@ -61,13 +61,27 @@ interface AccreditationCategory {
   slug: string;
 }
 
+interface StudyProgram {
+  id: string;
+  name: string;
+  code: string | null;
+  degreeLevel: string;
+  faculty: {
+    id: string;
+    name: string;
+    code: string | null;
+  } | null;
+}
+
 interface Accreditation {
   id: string;
   title: string;
   description: string | null;
   category: string;
   categoryId: string | null;
+  studyProgramId: string | null;
   accreditationBody: string;
+  accreditationStatus: string | null;
   certificateUrl: string | null;
   imageUrl: string | null;
   validUntil: Date | null;
@@ -75,6 +89,7 @@ interface Accreditation {
   createdAt: Date;
   updatedAt: Date;
   categoryRef: AccreditationCategory | null;
+  studyProgram: StudyProgram | null;
 }
 
 interface PaginationInfo {
@@ -228,6 +243,25 @@ export default function AkreditasiAdminPage() {
     return new Date(validUntil) > new Date();
   };
 
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
+    if (text.length <= maxLength) return text;
+    
+    // Potong teks
+    let truncated = text.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+  };
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(accreditations.map((item) => item.id));
@@ -299,7 +333,7 @@ export default function AkreditasiAdminPage() {
               variant="ghost"
               size="icon"
               onClick={() => handleTogglePublish(item.id, item.published)}
-              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.published ? 'hover:bg-orange-100 hover:text-orange-600' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
+              className={`h-8 w-8 sm:h-8 sm:w-8 shrink-0 ${item.published ? 'hover:bg-[#1B99F4]/10 hover:text-[#1B99F4]' : 'hover:bg-emerald-100 hover:text-emerald-600'}`}
             >
               {item.published ? (
                 <EyeOff className="h-4 w-4" />
@@ -426,7 +460,7 @@ export default function AkreditasiAdminPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm sm:text-base line-clamp-2">{item.title}</p>
+                          <p className="font-medium text-sm sm:text-base">{truncateText(item.title, 50)}</p>
                           <div className="flex flex-wrap items-center gap-2 mt-1">
                             <Badge variant="outline" className="text-xs">
                               {CATEGORY_LABELS[item.category] || item.category}
@@ -550,7 +584,7 @@ export default function AkreditasiAdminPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium line-clamp-1">{item.title}</p>
+                        <p className="font-medium">{truncateText(item.title, 40)}</p>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">

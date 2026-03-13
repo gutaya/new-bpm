@@ -28,12 +28,23 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+interface MenuItem {
+  id: string;
+  title: string;
+  url: string | null;
+  parentId: string | null;
+  children?: MenuItem[];
+}
+
 interface Document {
   id: string;
   title: string;
   description: string | null;
-  category: string;
-  categorySlug: string;
+  menuItem: {
+    id: string;
+    title: string;
+    url: string;
+  } | null;
   date: string;
   size: string;
   type: string;
@@ -46,100 +57,109 @@ interface DokumenContentProps {
   description?: string;
 }
 
-const categories = [
-  { name: 'Semua', slug: 'semua', href: '/dokumen' },
-  { name: 'Dokumen Publik', slug: 'publik', href: '/dokumen/publik' },
-  { name: 'Dokumen Universitas', slug: 'universitas', href: '/dokumen/universitas' },
-  { name: 'Dokumen Akreditasi', slug: 'akreditasi', href: '/dokumen/akreditasi' },
-  { name: 'Dokumen Eksternal', slug: 'eksternal', href: '/dokumen/eksternal' },
-  { name: 'Dokumen BPM', slug: 'bpm', href: '/dokumen/bpm' },
-  { name: 'Dokumen SPMI', slug: 'spmi', href: '/dokumen/spmi' },
-  { name: 'Dokumen SOP', slug: 'sop', href: '/dokumen/sop' },
-  { name: 'SK Rektor', slug: 'sk-rektor', href: '/dokumen/sk-rektor' },
-];
-
-// Default documents as fallback
-const defaultDocuments: Document[] = [
-  {
-    id: '1',
-    title: 'Buku Pedoman SPMI',
-    description: 'Pedoman Sistem Penjaminan Mutu Internal USNI',
-    category: 'Dokumen SPMI',
-    categorySlug: 'spmi',
-    date: new Date().toISOString(),
-    size: 'PDF',
-    type: 'pdf',
-    url: null,
-  },
-  {
-    id: '2',
-    title: 'Standar Mutu USNI',
-    description: 'Dokumen standar mutu Universitas Suryakancana',
-    category: 'Dokumen SPMI',
-    categorySlug: 'spmi',
-    date: new Date().toISOString(),
-    size: 'PDF',
-    type: 'pdf',
-    url: null,
-  },
-];
-
 export default function DokumenContent({ activeCategory, title, description }: DokumenContentProps) {
   const [allDocuments, setAllDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [subMenuItems, setSubMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [previewDoc, setPreviewDoc] = useState<Document | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
-  // Fetch documents from API
+  // Fetch menu items and extract Dokumen submenus
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchDocuments = async () => {
-      const categoryParam = activeCategory !== 'semua' ? `?category=${activeCategory}` : '';
+    const fetchMenuItems = async () => {
       try {
-        const res = await fetch(`/api/documents${categoryParam}`);
-        const data: Document[] = await res.json();
-        if (isMounted) {
-          if (data && data.length > 0) {
-            setAllDocuments(data);
-          } else {
-            setAllDocuments(defaultDocuments);
+        // Fetch all menu items with parent relationships
+        const response = await fetch('/api/admin/menu?includeAll=true');
+        if (response.ok) {
+          const data: MenuItem[] = await response.json();
+          
+          // Find "Dokumen" parent menu
+          const dokumenParent = data.find((item: MenuItem) => 
+            !item.parentId && item.title.toLowerCase() === 'dokumen'
+          );
+          
+          if (dokumenParent) {
+            // Get all submenu items under Dokumen
+            const subMenus = data.filter((item: MenuItem) => 
+              item.parentId === dokumenParent.id
+            );
+            setSubMenuItems(subMenus);
           }
-          setLoading(false);
-          setHasLoaded(true);
         }
       } catch (error) {
-        console.error('Error fetching documents:', error);
-        if (isMounted) {
-          setAllDocuments(defaultDocuments);
-          setLoading(false);
-          setHasLoaded(true);
+        console.error('Error fetching menu items:', error);
+      }
+    };
+    
+    fetchMenuItems();
+  }, []);
+
+  // Fetch documents based on active category
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      setLoading(true);
+      try {
+        let apiUrl = '/api/documents';
+        
+        if (activeCategory !== 'semua' && subMenuItems.length > 0) {
+          // Find the menu item for this category by URL slug
+          const menuItem = subMenuItems.find(item => {
+            if (!item.url) return false;
+            const urlParts = item.url.split('/');
+            const slug = urlParts[urlParts.length - 1];
+            return slug === activeCategory;
+          });
+          
+          if (menuItem) {
+            apiUrl += `?menuItemId=${menuItem.id}`;
+          } else {
+            // No matching menu found, return empty
+            setAllDocuments([]);
+            setLoading(false);
+            return;
+          }
         }
+        
+        const res = await fetch(apiUrl);
+        const data: Document[] = await res.json();
+        setAllDocuments(data);
+      } catch (error) {
+        console.error('Error fetching documents:', error);
+        setAllDocuments([]);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchDocuments();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [activeCategory]);
+  }, [activeCategory, subMenuItems]);
 
   const toggleFullscreen = () => {
     setIsFullscreen(prev => !prev);
   };
 
-  // Filter documents based on category and search
+  // Filter documents by search term (local filtering)
   const filteredDocuments = allDocuments.filter(doc => {
-    const matchesCategory = activeCategory === 'semua' || doc.categorySlug === activeCategory;
     const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (doc.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    return matchesSearch;
   });
+
+  // Build categories from submenu items
+  const categories = [
+    { name: 'Semua', slug: 'semua', href: '/dokumen' },
+    ...subMenuItems.map(item => {
+      const slug = item.url ? item.url.split('/').pop() : item.id;
+      return {
+        name: item.title,
+        slug: slug || item.id,
+        href: item.url || '/dokumen'
+      };
+    })
+  ];
 
   const getCategoryName = () => {
     if (activeCategory === 'semua') return '';
@@ -233,26 +253,28 @@ export default function DokumenContent({ activeCategory, title, description }: D
               />
             </div>
 
-            {/* Tab Buttons */}
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Link
-                  key={category.slug}
-                  href={category.href}
-                  className={`
-                    inline-flex items-center rounded-full border font-semibold
-                    focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
-                    cursor-pointer px-4 py-2 text-sm transition-all hover:scale-105
-                    ${activeCategory === category.slug
-                      ? 'border-transparent bg-primary text-primary-foreground'
-                      : 'text-foreground hover:bg-secondary'
-                    }
-                  `}
-                >
-                  {category.name}
-                </Link>
-              ))}
-            </div>
+            {/* Tab Buttons - Dynamic from submenu */}
+            {categories.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Link
+                    key={category.slug}
+                    href={category.href}
+                    className={`
+                      inline-flex items-center rounded-full border font-semibold
+                      focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2
+                      cursor-pointer px-4 py-2 text-sm transition-all hover:scale-105
+                      ${activeCategory === category.slug
+                        ? 'border-transparent bg-primary text-primary-foreground'
+                        : 'border-border text-foreground hover:bg-secondary'
+                      }
+                    `}
+                  >
+                    {category.name}
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Results Info */}
@@ -302,9 +324,11 @@ export default function DokumenContent({ activeCategory, title, description }: D
                           <span className="text-xs text-muted-foreground">
                             {doc.size}
                           </span>
-                          <span className="inline-flex items-center rounded-full border border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 text-xs px-2.5 py-0.5 font-semibold">
-                            {doc.category}
-                          </span>
+                          {doc.menuItem && (
+                            <span className="inline-flex items-center rounded-full border border-transparent bg-secondary text-secondary-foreground text-xs px-2.5 py-0.5 font-semibold">
+                              {doc.menuItem.title}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>

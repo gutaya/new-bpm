@@ -148,6 +148,25 @@ export default function PesanAdminPage() {
     });
   };
 
+  // Fungsi untuk memotong teks pada akhir kata dan menambahkan "..."
+  const truncateText = (text: string | null | undefined, maxLength: number): string => {
+    if (!text) return '-';
+    
+    if (text.length <= maxLength) return text;
+    
+    // Potong teks
+    let truncated = text.substring(0, maxLength);
+    
+    // Cari spasi terakhir untuk memotong pada akhir kata
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      truncated = truncated.substring(0, lastSpaceIndex);
+    }
+    
+    return truncated + '...';
+  };
+
   // Generate mailto link for reply
   const getMailtoLink = (message: ContactMessage) => {
     const subject = message.subject 
@@ -267,19 +286,19 @@ export default function PesanAdminPage() {
                           {!item.isRead && (
                             <div className="w-2 h-2 rounded-full bg-primary" />
                           )}
-                          <span className={`line-clamp-1 ${!item.isRead ? 'font-semibold' : ''}`}>
-                            {item.name}
+                          <span className={`${!item.isRead ? 'font-semibold' : ''}`}>
+                            {truncateText(item.name, 30)}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm text-muted-foreground line-clamp-1">
-                          {item.email}
+                        <span className="text-sm text-muted-foreground">
+                          {truncateText(item.email, 30)}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <p className={`line-clamp-1 ${!item.isRead ? 'font-medium' : ''}`}>
-                          {item.subject || '-'}
+                        <p className={`${!item.isRead ? 'font-medium' : ''}`}>
+                          {truncateText(item.subject, 40)}
                         </p>
                       </TableCell>
                       <TableCell className="text-center">
@@ -385,8 +404,8 @@ export default function PesanAdminPage() {
                           {!item.isRead && (
                             <div className="w-2 h-2 rounded-full bg-primary" />
                           )}
-                          <p className={`line-clamp-1 ${!item.isRead ? 'font-semibold' : 'font-medium'}`}>
-                            {item.name}
+                          <p className={`${!item.isRead ? 'font-semibold' : 'font-medium'}`}>
+                            {truncateText(item.name, 30)}
                           </p>
                         </div>
                         <Badge
@@ -396,12 +415,12 @@ export default function PesanAdminPage() {
                           {item.isRead ? 'Dibaca' : 'Baru'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground line-clamp-1">
-                        {item.email}
+                      <p className="text-sm text-muted-foreground">
+                        {truncateText(item.email, 40)}
                       </p>
                       {item.subject && (
-                        <p className={`text-sm line-clamp-1 ${!item.isRead ? 'font-medium' : ''}`}>
-                          {item.subject}
+                        <p className={`text-sm ${!item.isRead ? 'font-medium' : ''}`}>
+                          {truncateText(item.subject, 50)}
                         </p>
                       )}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

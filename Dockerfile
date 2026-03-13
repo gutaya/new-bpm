@@ -1,21 +1,22 @@
 # ===========================================
 # Dockerfile for BPM USNI - Next.js Application
+# Port: 2018 | Network: global_usni_network
 # ===========================================
 
 # Stage 1: Dependencies
 FROM node:20-alpine AS deps
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl openssl-dev
 WORKDIR /app
 
 # Copy package files
 COPY package.json bun.lock* package-lock.json* yarn.lock* ./
 
-# Install dependencies using npm (more compatible with Docker)
+# Install dependencies
 RUN npm install --legacy-peer-deps
 
 # Stage 2: Builder
 FROM node:20-alpine AS builder
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl openssl-dev
 WORKDIR /app
 
 # Copy dependencies from deps stage
@@ -32,18 +33,24 @@ ENV NODE_ENV=production
 # Build the application
 RUN npm run build
 
-# Stage 3: Runner
+# Stage 3: Runner (Production)
 FROM node:20-alpine AS runner
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl openssl-dev
 WORKDIR /app
 
+# Environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV HOSTNAME="0.0.0.0"
 ENV PORT=2018
 
-# Create necessary directories
-RUN mkdir -p /app/db /app/public/uploads/images /app/.next
+# Create app user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/db /app/public/uploads/images /app/public/uploads/documents /app/.next && \
+    chown -R nextjs:nodejs /app
 
 # Copy built application
 COPY --from=builder /app/.next/standalone ./
@@ -54,27 +61,23 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-
-# Copy node_modules for Prisma
 COPY --from=builder /app/node_modules ./node_modules
 
-# Create startup script
-RUN echo '#!/bin/sh' > /app/start.sh && \
-    echo 'echo "Starting BPM USNI Application..."' >> /app/start.sh && \
-    echo 'echo "Checking database..."' >> /app/start.sh && \
-    echo 'if [ ! -f /app/db/custom.db ]; then' >> /app/start.sh && \
-    echo '  echo "Database not found, running migrations..."' >> /app/start.sh && \
-    echo '  npx prisma db push --skip-generate' >> /app/start.sh && \
-    echo 'fi' >> /app/start.sh && \
-    echo 'echo "Starting server on $HOSTNAME:$PORT"' >> /app/start.sh && \
-    echo 'exec node server.js' >> /app/start.sh && \
-    chmod +x /app/start.sh
+# Copy startup script
+COPY docker-start.sh /app/start.sh
+RUN chmod +x /app/start.sh && chown nextjs:nodejs /app/start.sh
+
+# Set proper ownership
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
 
 # Expose port
 EXPOSE 2018
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:2018/api/identity || exit 1
 
 # Start the application

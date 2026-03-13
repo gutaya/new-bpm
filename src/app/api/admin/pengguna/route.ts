@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import bcrypt from 'bcryptjs';
 
 // GET - Fetch all users
 export async function GET() {
@@ -28,7 +29,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, fullName, avatarUrl, role, isActive } = body;
+    const { email, fullName, avatarUrl, role, isActive, password } = body;
 
     // Check if email already exists
     const existingUser = await db.user.findUnique({
@@ -42,9 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password || 'default123', 10);
+
     const user = await db.user.create({
       data: {
         email,
+        password: hashedPassword,
         fullName,
         avatarUrl,
         role: role || 'editor',

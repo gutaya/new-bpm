@@ -55,6 +55,13 @@ const defaultLayananList = [
     description: 'Program Pekerti dan Asisten Ahli untuk pengembangan kompetensi dosen',
     icon: 'graduation-cap',
   },
+  {
+    id: '5',
+    title: 'Jabatan Fungsional',
+    slug: 'jafung',
+    description: 'Informasi dan layanan pengurusan jabatan fungsional dosen',
+    icon: 'briefcase',
+  },
 ];
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -63,6 +70,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   'gift': Gift,
   'graduation-cap': GraduationCap,
   'file-text': FileText,
+  'briefcase': FileText,
 };
 
 export default function LayananPage() {

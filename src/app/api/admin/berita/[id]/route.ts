@@ -12,13 +12,32 @@ export async function GET(
     const { id } = await params;
     const news = await db.news.findUnique({
       where: { id },
+      include: {
+        tags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              }
+            }
+          }
+        }
+      }
     });
 
     if (!news) {
       return NextResponse.json({ error: 'News not found' }, { status: 404 });
     }
 
-    return NextResponse.json(news);
+    // Transform the response to include tags as a flat array
+    const result = {
+      ...news,
+      tags: news.tags.map(t => t.tag)
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching news:', error);
     return NextResponse.json({ error: 'Failed to fetch news' }, { status: 500 });
@@ -33,7 +52,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { title, slug, excerpt, content, imageUrl, published, publishedAt } = body;
+    const { title, slug, excerpt, content, imageUrl, published, publishedAt, tagIds } = body;
 
     const updateData: Record<string, unknown> = {};
 
@@ -50,12 +69,49 @@ export async function PATCH(
     }
     if (publishedAt !== undefined) updateData.publishedAt = publishedAt ? new Date(publishedAt) : null;
 
+    // Handle tag updates
+    if (tagIds !== undefined) {
+      // First delete all existing tag relations
+      await db.newsTag.deleteMany({
+        where: { newsId: id }
+      });
+
+      // Then create new tag relations
+      if (tagIds.length > 0) {
+        await db.newsTag.createMany({
+          data: tagIds.map((tagId: string) => ({
+            newsId: id,
+            tagId: tagId
+          }))
+        });
+      }
+    }
+
     const news = await db.news.update({
       where: { id },
       data: updateData,
+      include: {
+        tags: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+              }
+            }
+          }
+        }
+      }
     });
 
-    return NextResponse.json(news);
+    // Transform the response to include tags as a flat array
+    const result = {
+      ...news,
+      tags: news.tags.map(t => t.tag)
+    };
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error updating news:', error);
     return NextResponse.json({ error: 'Failed to update news' }, { status: 500 });
@@ -69,6 +125,12 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    
+    // Delete tag relations first (cascade should handle this, but let's be explicit)
+    await db.newsTag.deleteMany({
+      where: { newsId: id }
+    });
+    
     await db.news.delete({
       where: { id },
     });

@@ -26,11 +26,20 @@ interface PageProps {
 }
 
 const MENU_CATEGORIES = [
+  { value: 'none', label: 'Tidak Ada' },
   { value: 'profil', label: 'Profil' },
   { value: 'akademik', label: 'Akademik' },
   { value: 'layanan', label: 'Layanan' },
   { value: 'informasi', label: 'Informasi' },
   { value: 'lainnya', label: 'Lainnya' },
+];
+
+const PARENT_MENUS = [
+  { value: 'none', label: 'Tidak Ada (Halaman Mandiri)' },
+  { value: 'profil', label: 'Profil' },
+  { value: 'layanan', label: 'Layanan' },
+  { value: 'dokumen', label: 'Dokumen' },
+  { value: 'akreditasi', label: 'Akreditasi' },
 ];
 
 export default function EditHalamanStatisPage({ params }: PageProps) {
@@ -46,7 +55,9 @@ export default function EditHalamanStatisPage({ params }: PageProps) {
     description: '',
     content: '',
     icon: '',
-    menuCategory: '',
+    menuCategory: 'none',
+    parentMenu: 'none',
+    showInMenu: false,
     orderIndex: 0,
     published: false,
   });
@@ -68,7 +79,9 @@ export default function EditHalamanStatisPage({ params }: PageProps) {
           description: data.description || '',
           content: data.content || '',
           icon: data.icon || '',
-          menuCategory: data.menuCategory || '',
+          menuCategory: data.menuCategory || 'none',
+          parentMenu: data.parentMenu || 'none',
+          showInMenu: data.showInMenu || false,
           orderIndex: data.orderIndex || 0,
           published: data.published || false,
         });
@@ -285,6 +298,48 @@ export default function EditHalamanStatisPage({ params }: PageProps) {
                 <p className="text-xs text-muted-foreground">
                   Kategori untuk pengelompokan menu
                 </p>
+              </div>
+
+              {/* Parent Menu */}
+              <div className="space-y-2">
+                <Label htmlFor="parentMenu">Menu Induk (Dropdown)</Label>
+                <Select
+                  value={formData.parentMenu}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, parentMenu: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih menu induk" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PARENT_MENUS.map((menu) => (
+                      <SelectItem key={menu.value} value={menu.value}>
+                        {menu.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Pilih menu induk untuk menampilkan halaman ini sebagai submenu dropdown
+                </p>
+              </div>
+
+              {/* Show in Menu */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="showInMenu">Tampilkan di Menu</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Tampilkan halaman ini sebagai item di dropdown menu
+                  </p>
+                </div>
+                <Switch
+                  id="showInMenu"
+                  checked={formData.showInMenu}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, showInMenu: checked }))
+                  }
+                />
               </div>
 
               {/* Order Index */}

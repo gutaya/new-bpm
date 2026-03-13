@@ -2,9 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
 // GET - Fetch all menu items with parent-child relationships
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Only fetch parent menu items (parentId is null), children will be included
+    const { searchParams } = new URL(request.url);
+    const includeAll = searchParams.get('includeAll') === 'true';
+
+    // If includeAll is true, fetch all items with parent info (for dropdowns)
+    if (includeAll) {
+      const allItems = await db.menuItem.findMany({
+        where: { isActive: true },
+        orderBy: [
+          { orderIndex: 'asc' },
+          { createdAt: 'asc' }
+        ],
+        include: {
+          parent: {
+            select: { id: true, title: true }
+          }
+        }
+      });
+      return NextResponse.json(allItems);
+    }
+
+    // Default: fetch parent menu items with children
     const menuItems = await db.menuItem.findMany({
       where: {
         parentId: null

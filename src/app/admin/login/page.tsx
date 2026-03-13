@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Lock, Loader2, Eye, EyeOff, ArrowLeft, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface WebsiteIdentity {
+  siteName: string | null;
+  siteTagline: string | null;
+  logoUrl: string | null;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -16,6 +22,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [identity, setIdentity] = useState<WebsiteIdentity | null>(null);
+  const [loadingIdentity, setLoadingIdentity] = useState(true);
+
+  useEffect(() => {
+    fetchIdentity();
+  }, []);
+
+  const fetchIdentity = async () => {
+    try {
+      const response = await fetch('/api/identity');
+      if (response.ok) {
+        const data = await response.json();
+        setIdentity(data);
+      }
+    } catch (error) {
+      console.error('Error fetching identity:', error);
+    } finally {
+      setLoadingIdentity(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +66,7 @@ export default function LoginPage() {
       if (response.ok) {
         // Store user info in localStorage
         localStorage.setItem('admin_user', JSON.stringify({
+          id: data.user.id,
           email: data.user.email,
           name: data.user.fullName || data.user.email,
           role: data.user.role,
@@ -72,51 +99,26 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
           {/* Logo */}
           <div className="mb-8">
-            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-2xl">
-              <Shield className="h-14 w-14 text-[#0D93F2]" />
+            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden">
+              {identity?.logoUrl ? (
+                <img
+                  src={identity.logoUrl}
+                  alt="Logo"
+                  className="w-full h-full object-contain p-2"
+                />
+              ) : (
+                <Shield className="h-14 w-14 text-[#0D93F2]" />
+              )}
             </div>
           </div>
           
           {/* Title */}
           <h1 className="text-4xl font-bold text-center mb-4">
-            Badan Penjaminan Mutu
+            {identity?.siteName || 'Badan Penjaminan Mutu'}
           </h1>
-          <h2 className="text-2xl font-medium text-center mb-6 text-white/90">
-            Universitas Satya Negara Indonesia
+          <h2 className="text-2xl font-medium text-center text-white/90">
+            {identity?.siteTagline || 'Universitas Satya Negara Indonesia'}
           </h2>
-          
-          {/* Description */}
-          <p className="text-lg text-center text-white/80 max-w-md mb-8">
-            Menggenggam Mutu, Meningkatkan Daya Saing
-          </p>
-          
-          {/* Features */}
-          <div className="space-y-4 w-full max-w-sm">
-            <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <span className="text-white/90">Sistem Akreditasi Terintegrasi</span>
-            </div>
-            <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <span className="text-white/90">Dokumen Mutu Digital</span>
-            </div>
-            <div className="flex items-center gap-4 bg-white/10 backdrop-blur-sm rounded-xl p-4">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <span className="text-white/90">Akses Layanan Cepat</span>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -125,11 +127,19 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex w-16 h-16 bg-gradient-to-br from-[#0D93F2] to-[#0a7dd4] rounded-xl items-center justify-center shadow-lg mb-4">
-              <Shield className="h-10 w-10 text-white" />
+            <div className="inline-flex w-16 h-16 bg-gradient-to-br from-[#0D93F2] to-[#0a7dd4] rounded-xl items-center justify-center shadow-lg mb-4 overflow-hidden">
+              {identity?.logoUrl ? (
+                <img
+                  src={identity.logoUrl}
+                  alt="Logo"
+                  className="w-full h-full object-contain p-1"
+                />
+              ) : (
+                <Shield className="h-10 w-10 text-white" />
+              )}
             </div>
             <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
-            <p className="text-sm text-muted-foreground mt-1">Badan Penjaminan Mutu</p>
+            <p className="text-sm text-muted-foreground mt-1">{identity?.siteName || 'Badan Penjaminan Mutu'}</p>
           </div>
 
           {/* Back to Website */}
@@ -222,14 +232,6 @@ export default function LoginPage() {
               )}
             </Button>
           </form>
-
-          {/* Help Text */}
-          <div className="mt-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Belum punya akun?{' '}
-              <span className="text-[#0D93F2] font-medium">Hubungi administrator</span>
-            </p>
-          </div>
 
           {/* Footer */}
           <div className="mt-8 pt-6 border-t border-border text-center">
