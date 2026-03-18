@@ -48,7 +48,6 @@ import {
   Shield,
   X,
   User,
-  Tag,
 } from 'lucide-react';
 
 // Website Identity interface
@@ -132,7 +131,6 @@ const menuGroups: MenuGroup[] = [
       { name: 'Berita', href: '/admin/berita', icon: Newspaper },
       { name: 'Pengumuman', href: '/admin/pengumuman', icon: Megaphone },
       { name: 'Halaman Statis', href: '/admin/halaman', icon: FileText },
-      { name: 'Tags', href: '/admin/tags', icon: Tag },
     ],
   },
   {
@@ -159,6 +157,7 @@ const menuGroups: MenuGroup[] = [
     icon: Settings,
     items: [
       { name: 'Identitas Website', href: '/admin/identitas', icon: Globe },
+      { name: 'Menu Navigasi', href: '/admin/menu', icon: Network },
       { name: 'Visi & Misi', href: '/admin/visi-misi', icon: Target },
       { name: 'Tentang Kami', href: '/admin/tentang-kami', icon: Info },
       { name: 'Struktur Organisasi', href: '/admin/struktur-organisasi', icon: Network },
@@ -521,7 +520,7 @@ export default function AdminLayout({
 
   const handleLogout = () => {
     clearStoredUser();
-    router.push('/');
+    router.push('/admin/login');
   };
 
   // Loading state
@@ -648,7 +647,7 @@ export default function AdminLayout({
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {hydrated && authState.userId && (
+                {authState.userId && (
                   <DropdownMenuItem asChild className="hover:bg-[#1B99F4]/10 hover:text-[#1B99F4] focus:bg-[#1B99F4]/10 focus:text-[#1B99F4]">
                     <Link href={`/admin/pengguna/${authState.userId}`} className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />

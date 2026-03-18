@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         'about_us',
         'website_identity',
         'admin_settings',
+        'document_categories',
         'accreditation_categories',
         'faculties',
         'albums',
@@ -95,6 +96,9 @@ export async function POST(request: NextRequest) {
             break;
           case 'slideshows':
             await tx.slideshow.deleteMany();
+            break;
+          case 'document_categories':
+            await tx.documentCategory.deleteMany();
             break;
           case 'documents':
             await tx.document.deleteMany();
@@ -177,6 +181,9 @@ export async function POST(request: NextRequest) {
                   break;
                 case 'slideshows':
                   await tx.slideshow.create({ data: record as Prisma.SlideshowCreateInput });
+                  break;
+                case 'document_categories':
+                  await tx.documentCategory.create({ data: record as Prisma.DocumentCategoryCreateInput });
                   break;
                 case 'documents':
                   await tx.document.create({ data: record as Prisma.DocumentCreateInput });

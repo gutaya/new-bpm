@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +30,6 @@ import {
   UserX,
   Users,
   Clock,
-  Loader2,
 } from 'lucide-react';
 import { DeleteConfirmationDialog } from '@/components/admin/DeleteConfirmationDialog';
 import { toast } from 'sonner';
@@ -49,48 +47,14 @@ interface User {
 }
 
 export default function PenggunaAdminPage() {
-  const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Check auth and role
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const stored = localStorage.getItem('admin_user');
-        if (stored) {
-          const user = JSON.parse(stored);
-          if (user.role !== 'admin') {
-            toast.error('Anda tidak memiliki akses ke halaman ini');
-            router.push('/admin');
-            return;
-          }
-          setIsAdmin(true);
-        } else {
-          router.push('/admin/login');
-          return;
-        }
-      } catch {
-        router.push('/admin/login');
-        return;
-      }
-      setCheckingAuth(false);
-    };
-
-    // Small delay to ensure localStorage is available
-    const timer = setTimeout(checkAuth, 0);
-    return () => clearTimeout(timer);
-  }, [router]);
-
-  useEffect(() => {
-    if (!checkingAuth && isAdmin) {
-      fetchUsers();
-    }
-  }, [checkingAuth, isAdmin]);
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {

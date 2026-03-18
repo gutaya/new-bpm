@@ -64,7 +64,6 @@ export async function PATCH(
       categoryId,
       studyProgramId,
       accreditationBody,
-      accreditationStatus,
       certificateUrl,
       imageUrl,
       validUntil,
@@ -79,7 +78,6 @@ export async function PATCH(
     if (categoryId !== undefined) updateData.categoryId = categoryId || null;
     if (studyProgramId !== undefined) updateData.studyProgramId = studyProgramId || null;
     if (accreditationBody !== undefined) updateData.accreditationBody = accreditationBody;
-    if (accreditationStatus !== undefined) updateData.accreditationStatus = accreditationStatus || null;
     if (certificateUrl !== undefined) updateData.certificateUrl = certificateUrl || null;
     if (imageUrl !== undefined) updateData.imageUrl = imageUrl || null;
     if (validUntil !== undefined) updateData.validUntil = validUntil ? new Date(validUntil) : null;

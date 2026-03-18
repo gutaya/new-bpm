@@ -1,6 +1,7 @@
 #!/bin/sh
 # ===========================================
 # Startup Script for BPM USNI Container
+# Port: 2018
 # ===========================================
 
 echo "=========================================="
@@ -8,36 +9,36 @@ echo "  BPM USNI - Starting Application"
 echo "=========================================="
 echo ""
 
-# Set working directory
 cd /app
 
-# Check if database exists
-echo "[1/3] Checking database..."
+# Set environment
+export HOSTNAME="${HOSTNAME:-0.0.0.0}"
+export PORT="${PORT:-2018}"
+export NODE_ENV="${NODE_ENV:-production}"
+
+# Ensure directories exist
+echo "[1/3] Setting up directories..."
+mkdir -p /app/db /app/public/uploads/images /app/public/uploads/documents
+echo "      Directories ready!"
+
+# Database setup
+echo "[2/3] Checking database..."
 if [ ! -f /app/db/custom.db ]; then
-    echo "      Database not found. Creating new database..."
-    npx prisma db push --skip-generate
-    echo "      Database created successfully!"
+    echo "      Creating new database..."
+    npx prisma db push --skip-generate 2>&1
+    echo "      Database created!"
 else
-    echo "      Database found. Verifying schema..."
-    npx prisma db push --skip-generate --accept-data-loss 2>/dev/null || true
-    echo "      Database ready!"
+    echo "      Database found!"
 fi
 
-# Ensure uploads directory exists with proper permissions
-echo "[2/3] Checking uploads directory..."
-mkdir -p /app/public/uploads/images /app/public/uploads/documents
-echo "      Uploads directory ready!"
-
-# Start the server
-echo "[3/3] Starting Next.js server..."
-echo "      Host: $HOSTNAME"
-echo "      Port: $PORT"
+# Start server
+echo "[3/3] Starting server on port $PORT..."
 echo ""
 echo "=========================================="
-echo "  Application is running!"
-echo "  Access at: http://<server-ip>:2018"
+echo "  Application Running!"
+echo "  URL: http://localhost:$PORT"
 echo "=========================================="
 echo ""
 
-# Execute the Next.js server
+# Run the standalone server
 exec node server.js

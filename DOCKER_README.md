@@ -1,147 +1,117 @@
 # Docker Deployment - BPM USNI
 
-Panduan deploy aplikasi BPM USNI menggunakan Docker dengan konfigurasi:
+Panduan deploy aplikasi BPM USNI menggunakan Docker dengan build lokal.
+
+## Konfigurasi
 - **Port**: 2018
-- **IP Binding**: 10.8.0.1
-- **Network**: global_usni_network
+- **Database**: SQLite (persistent)
+- **Uploads**: Persistent volume
 
 ## Prasyarat
 
-1. Docker dan Docker Compose sudah terinstall
-2. Network `global_usni_network` sudah dibuat (jika belum, jalankan perintah di bawah)
+1. Node.js 20+ sudah terinstall di server
+2. Docker dan Docker Compose sudah terinstall
 
 ## Langkah Instalasi
 
-### 1. Buat Network Docker (jika belum ada)
+### 1. Build Aplikasi Secara Lokal
 
 ```bash
-docker network create --driver bridge --subnet=10.8.0.0/24 global_usni_network
+# Install dependencies
+npm install
+
+# Build aplikasi
+npm run build
 ```
 
-### 2. Build dan Jalankan Container
+### 2. Copy File ke Standalone Folder
 
 ```bash
-# Build image
-docker-compose build --no-cache
+# Copy static files
+cp -r .next/static .next/standalone/.next/
+
+# Copy public folder
+cp -r public .next/standalone/
+```
+
+### 3. Build dan Jalankan Docker
+
+```bash
+# Build Docker image
+docker-compose build
 
 # Jalankan container
 docker-compose up -d
 
-# Lihat logs
-docker-compose logs -f
-```
-
-### 3. Verifikasi Instalasi
-
-```bash
-# Cek status container
+# Cek status
 docker-compose ps
 
-# Cek health status
-docker inspect --format='{{.State.Health.Status}}' bpm-usni-app
+# Lihat logs
+docker-compose logs -f
 ```
 
 ## Akses Aplikasi
 
-Setelah container berjalan, akses aplikasi di:
-- **URL**: `http://<server-ip>:2018`
-- **Admin Panel**: `http://<server-ip>:2018/admin/login`
+- **URL**: `http://localhost:2018`
+- **Admin Panel**: `http://localhost:2018/admin/login`
+
+## Default Admin Account
+
+- **Email**: admin@usni.ac.id
+- **Password**: admin123
+
+> **PENTING**: Segera ubah password setelah login pertama!
 
 ## Struktur Volume
-
-Data akan tersimpan di host machine:
 
 | Host Path | Container Path | Keterangan |
 |-----------|----------------|------------|
 | `./db` | `/app/db` | Database SQLite |
-| `./public/uploads` | `/app/public/uploads` | File upload (gambar, dokumen) |
+| `./public/uploads` | `/app/public/uploads` | File upload |
 
 ## Perintah Docker
 
 ```bash
-# Start container
+# Start
 docker-compose up -d
 
-# Stop container
+# Stop
 docker-compose down
 
-# Restart container
+# Restart
 docker-compose restart
 
-# Lihat logs
+# Logs
 docker-compose logs -f
 
-# Rebuild container
-docker-compose build --no-cache && docker-compose up -d
-
-# Masuk ke container
+# Masuk container
 docker exec -it bpm-usni-app sh
 
-# Backup database
-cp ./db/custom.db ./db/backup/custom.db.$(date +%Y%m%d_%H%M%S)
-
-# Backup uploads
-tar -czf uploads_backup_$(date +%Y%m%d_%H%M%S).tar.gz ./public/uploads
-```
-
-## Environment Variables
-
-| Variable | Value | Keterangan |
-|----------|-------|------------|
-| `NODE_ENV` | production | Environment mode |
-| `PORT` | 2018 | Port aplikasi |
-| `DATABASE_URL` | file:/app/db/custom.db | Lokasi database |
-| `NEXT_TELEMETRY_DISABLED` | 1 | Disable telemetry |
-
-## Troubleshooting
-
-### Container tidak bisa start
-
-```bash
-# Cek logs
-docker-compose logs bpm-usni
-
-# Cek apakah port sudah digunakan
-netstat -tlnp | grep 2018
-```
-
-### Database tidak bisa diakses
-
-```bash
-# Cek permission folder db
-ls -la ./db
-
-# Fix permission
-chmod -R 755 ./db
-```
-
-### Upload tidak berfungsi
-
-```bash
-# Cek permission folder uploads
-ls -la ./public/uploads
-
-# Fix permission
-chmod -R 755 ./public/uploads
-```
-
-### Network tidak ditemukan
-
-```bash
-# Buat ulang network
-docker network create --driver bridge --subnet=10.8.0.0/24 global_usni_network
-
-# Cek network
-docker network ls | grep global_usni_network
+# Rebuild (setelah update)
+npm run build
+cp -r .next/static .next/standalone/.next/
+cp -r public .next/standalone/
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
 ## Update Aplikasi
 
 ```bash
-# Pull changes terbaru
+# 1. Pull code terbaru
 git pull
 
-# Rebuild dan restart
+# 2. Install dependencies baru (jika ada)
+npm install
+
+# 3. Build ulang
+npm run build
+
+# 4. Copy files
+cp -r .next/static .next/standalone/.next/
+cp -r public .next/standalone/
+
+# 5. Rebuild dan restart Docker
 docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
@@ -152,27 +122,53 @@ docker-compose up -d
 ### Backup
 
 ```bash
-# Backup database
+# Database
 cp ./db/custom.db ./backup/custom.db.$(date +%Y%m%d_%H%M%S)
 
-# Backup uploads
+# Uploads
 tar -czf ./backup/uploads_$(date +%Y%m%d_%H%M%S).tar.gz ./public/uploads
 ```
 
 ### Restore
 
 ```bash
+# Stop container
+docker-compose down
+
 # Restore database
 cp ./backup/custom.db.YYYYMMDD_HHMMSS ./db/custom.db
 
 # Restore uploads
-tar -xzf ./backup/uploads_YYYYMMDD_HHMMSS.tar.gz -C ./
+tar -xzf ./backup/uploads_YYYYMMDD_HHMMSS.tar.gz
+
+# Start container
+docker-compose up -d
 ```
 
-## Default Admin Account
+## Troubleshooting
 
-Setelah instalasi, gunakan akun default:
-- **Email**: admin@usni.ac.id
-- **Password**: admin123
+### Build gagal
 
-**PENTING**: Segera ubah password setelah login pertama!
+```bash
+# Bersihkan cache dan build ulang
+rm -rf .next node_modules
+npm install
+npm run build
+```
+
+### Container tidak bisa start
+
+```bash
+# Cek logs
+docker-compose logs
+
+# Cek port
+lsof -i :2018
+```
+
+### Permission denied
+
+```bash
+# Fix permission
+chmod -R 755 ./db ./public/uploads
+```

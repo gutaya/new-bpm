@@ -29,13 +29,6 @@ const ROLES = [
   { value: 'editor', label: 'Editor' },
 ];
 
-interface CurrentUser {
-  id: string;
-  role: string;
-  email: string;
-  name: string;
-}
-
 export default function EditPenggunaPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
@@ -44,8 +37,6 @@ export default function EditPenggunaPage({ params }: PageProps) {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     email: '',
@@ -57,51 +48,11 @@ export default function EditPenggunaPage({ params }: PageProps) {
     confirmPassword: '',
   });
 
-  // Check auth and role
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const stored = localStorage.getItem('admin_user');
-        if (stored) {
-          const user = JSON.parse(stored);
-          setCurrentUser(user);
-          
-          // If trying to add new user, only admin can do that
-          if (isNew && user.role !== 'admin') {
-            toast.error('Hanya admin yang dapat menambah pengguna baru');
-            router.push('/admin');
-            return;
-          }
-          
-          // If editing another user's profile, only admin can do that
-          if (!isNew && user.role !== 'admin' && user.id !== resolvedParams.id) {
-            toast.error('Anda hanya dapat mengedit profil Anda sendiri');
-            router.push('/admin');
-            return;
-          }
-        } else {
-          router.push('/admin/login');
-          return;
-        }
-      } catch {
-        router.push('/admin/login');
-        return;
-      }
-      setCheckingAuth(false);
-    };
-
-    // Small delay to ensure localStorage is available
-    const timer = setTimeout(checkAuth, 0);
-    return () => clearTimeout(timer);
-  }, [router, isNew, resolvedParams.id]);
-
-  useEffect(() => {
-    if (!checkingAuth && !isNew) {
+    if (!isNew) {
       fetchUser();
-    } else if (!checkingAuth && isNew) {
-      setLoading(false);
     }
-  }, [checkingAuth, isNew, resolvedParams.id]);
+  }, [isNew, resolvedParams.id]);
 
   const fetchUser = async () => {
     try {
@@ -207,14 +158,6 @@ export default function EditPenggunaPage({ params }: PageProps) {
 
       if (response.ok) {
         toast.success(isNew ? 'Pengguna berhasil dibuat' : 'Pengguna berhasil diperbarui');
-        // If editing own profile, update localStorage
-        if (!isNew && currentUser && currentUser.id === resolvedParams.id) {
-          const updatedUser = {
-            ...currentUser,
-            name: formData.fullName || currentUser.email,
-          };
-          localStorage.setItem('admin_user', JSON.stringify(updatedUser));
-        }
         router.push('/admin/pengguna');
       } else {
         const error = await response.json();
@@ -240,13 +183,7 @@ export default function EditPenggunaPage({ params }: PageProps) {
     return formData.email.slice(0, 2).toUpperCase();
   };
 
-  // Check if current user is admin
-  const isAdmin = currentUser?.role === 'admin';
-  // Check if editing own profile
-  const isOwnProfile = currentUser?.id === resolvedParams.id;
-
-  // Show loading while checking auth
-  if (checkingAuth || loading) {
+  if (loading) {
     return (
       <AdminLayout>
         <div className="flex items-center justify-center min-h-[400px]">
@@ -271,7 +208,7 @@ export default function EditPenggunaPage({ params }: PageProps) {
           </Button>
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground">
-              {isNew ? 'Tambah Pengguna' : isOwnProfile ? 'Edit Profil' : 'Edit Pengguna'}
+              {isNew ? 'Tambah Pengguna' : 'Edit Pengguna'}
             </h1>
             <p className="text-muted-foreground mt-1">
               {isNew ? 'Buat pengguna baru' : 'Perbarui informasi pengguna'}
@@ -402,58 +339,56 @@ export default function EditPenggunaPage({ params }: PageProps) {
             </CardContent>
           </Card>
 
-          {/* Role & Status - Only for admin */}
-          {isAdmin && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Pengaturan Akses</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Role */}
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select
-                    value={formData.role}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, role: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {ROLES.map((role) => (
-                        <SelectItem key={role.value} value={role.value}>
-                          {role.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    <strong>Admin:</strong> Akses penuh ke semua fitur<br />
-                    <strong>Editor:</strong> Dapat mengelola konten tanpa akses admin
+          {/* Role & Status */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Pengaturan Akses</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Role */}
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, role: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Admin:</strong> Akses penuh ke semua fitur<br />
+                  <strong>Editor:</strong> Dapat mengelola konten tanpa akses admin
+                </p>
+              </div>
+
+              {/* Active Status */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="isActive">Status Aktif</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Aktifkan untuk mengizinkan pengguna mengakses sistem
                   </p>
                 </div>
-
-                {/* Active Status */}
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="isActive">Status Aktif</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Aktifkan untuk mengizinkan pengguna mengakses sistem
-                    </p>
-                  </div>
-                  <Switch
-                    id="isActive"
-                    checked={formData.isActive}
-                    onCheckedChange={(checked) =>
-                      setFormData((prev) => ({ ...prev, isActive: checked }))
-                    }
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                <Switch
+                  id="isActive"
+                  checked={formData.isActive}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, isActive: checked }))
+                  }
+                />
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Actions */}
           <div className="flex justify-end gap-4">

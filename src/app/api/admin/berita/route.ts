@@ -36,29 +36,10 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
       skip,
       take: pageSize,
-      include: {
-        tags: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              }
-            }
-          }
-        }
-      }
     });
 
-    // Transform the response to include tags as a flat array
-    const data = news.map(item => ({
-      ...item,
-      tags: item.tags.map(t => t.tag)
-    }));
-
     return NextResponse.json({
-      data,
+      data: news,
       pagination: {
         page,
         pageSize,
@@ -79,7 +60,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, slug, excerpt, content, imageUrl, published, publishedAt, tagIds } = body;
+    const { title, slug, excerpt, content, imageUrl, published, publishedAt } = body;
 
     // Generate slug if not provided
     const finalSlug = slug || title
@@ -96,37 +77,10 @@ export async function POST(request: NextRequest) {
         imageUrl,
         published: published ?? false,
         publishedAt: published ? (publishedAt ? new Date(publishedAt) : new Date()) : null,
-        // Create tag relations if provided
-        ...(tagIds && tagIds.length > 0 && {
-          tags: {
-            create: tagIds.map((tagId: string) => ({
-              tag: { connect: { id: tagId } }
-            }))
-          }
-        })
       },
-      include: {
-        tags: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              }
-            }
-          }
-        }
-      }
     });
 
-    // Transform the response to include tags as a flat array
-    const result = {
-      ...news,
-      tags: news.tags.map(t => t.tag)
-    };
-
-    return NextResponse.json(result);
+    return NextResponse.json(news);
   } catch (error) {
     console.error('Error creating news:', error);
     return NextResponse.json(

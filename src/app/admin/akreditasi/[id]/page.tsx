@@ -281,7 +281,6 @@ export default function EditAkreditasiPage({ params }: PageProps) {
         body: JSON.stringify({
           ...formData,
           studyProgramId: formData.studyProgramId || null,
-          accreditationStatus: formData.accreditationStatus || null,
           validUntil: formData.validUntil?.toISOString() || null,
         }),
       });

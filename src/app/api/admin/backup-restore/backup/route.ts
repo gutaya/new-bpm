@@ -10,7 +10,7 @@ export async function POST() {
       tables: {} as Record<string, unknown[]>,
     };
 
-    // Fetch all data from each table (matching Prisma schema)
+    // Fetch all data from each table
     const tables = [
       { name: 'users', data: await db.user.findMany() },
       { name: 'news', data: await db.news.findMany() },
@@ -18,6 +18,7 @@ export async function POST() {
       { name: 'albums', data: await db.album.findMany() },
       { name: 'gallery_images', data: await db.galleryImage.findMany() },
       { name: 'slideshows', data: await db.slideshow.findMany() },
+      { name: 'document_categories', data: await db.documentCategory.findMany() },
       { name: 'documents', data: await db.document.findMany() },
       { name: 'accreditation_categories', data: await db.accreditationCategory.findMany() },
       { name: 'accreditation_data', data: await db.accreditationData.findMany() },

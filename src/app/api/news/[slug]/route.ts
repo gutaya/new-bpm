@@ -10,19 +10,6 @@ export async function GET(
     
     const news = await db.news.findUnique({
       where: { slug },
-      include: {
-        tags: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-              }
-            }
-          }
-        }
-      }
     });
     
     if (!news) {
@@ -34,14 +21,8 @@ export async function GET(
       where: { id: news.id },
       data: { viewCount: { increment: 1 } },
     });
-
-    // Transform the response to include tags as a flat array
-    const result = {
-      ...news,
-      tags: news.tags.map(t => t.tag)
-    };
     
-    return NextResponse.json(result);
+    return NextResponse.json(news);
   } catch (error) {
     console.error('Error fetching news:', error);
     return NextResponse.json({ error: 'Failed to fetch news' }, { status: 500 });

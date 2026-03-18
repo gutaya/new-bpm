@@ -77,25 +77,14 @@ export async function GET() {
       type: 'custom'
     }));
 
-    // Get default categories with counts > 0
-    const activeDefaults = counts.filter(c => c.count > 0);
-    const defaultSlugs = activeDefaults.map(c => c.slug);
-    const defaultNames = activeDefaults.map(c => c.name.toLowerCase());
-
-    // Filter out dbCategories that have the same slug or name as default categories to avoid duplicates
-    const filteredDbCategories = dbCategories.filter(cat => 
-      !defaultSlugs.includes(cat.slug) && 
-      !defaultNames.includes(cat.name.toLowerCase())
-    );
-
-    // Combine default categories with custom ones (filtered to avoid duplicates)
+    // Combine default categories with custom ones
     const result = [
       { id: 'all', name: 'Semua', slug: 'semua', accreditationCount: 0, type: 'all' },
-      ...activeDefaults.map(c => ({
+      ...counts.filter(c => c.count > 0).map(c => ({
         ...c,
         accreditationCount: c.count
       })),
-      ...filteredDbCategories
+      ...dbCategories
     ];
 
     return NextResponse.json(result);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Mail, Lock, Loader2, Eye, EyeOff, ArrowLeft, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface WebsiteIdentity {
-  siteName: string | null;
-  siteTagline: string | null;
-  logoUrl: string | null;
-}
-
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -22,26 +16,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [identity, setIdentity] = useState<WebsiteIdentity | null>(null);
-  const [loadingIdentity, setLoadingIdentity] = useState(true);
-
-  useEffect(() => {
-    fetchIdentity();
-  }, []);
-
-  const fetchIdentity = async () => {
-    try {
-      const response = await fetch('/api/identity');
-      if (response.ok) {
-        const data = await response.json();
-        setIdentity(data);
-      }
-    } catch (error) {
-      console.error('Error fetching identity:', error);
-    } finally {
-      setLoadingIdentity(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,25 +73,17 @@ export default function LoginPage() {
         <div className="relative z-10 flex flex-col justify-center items-center w-full p-12 text-white">
           {/* Logo */}
           <div className="mb-8">
-            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden">
-              {identity?.logoUrl ? (
-                <img
-                  src={identity.logoUrl}
-                  alt="Logo"
-                  className="w-full h-full object-contain p-2"
-                />
-              ) : (
-                <Shield className="h-14 w-14 text-[#0D93F2]" />
-              )}
+            <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center shadow-2xl">
+              <Shield className="h-14 w-14 text-[#0D93F2]" />
             </div>
           </div>
           
           {/* Title */}
           <h1 className="text-4xl font-bold text-center mb-4">
-            {identity?.siteName || 'Badan Penjaminan Mutu'}
+            Badan Penjaminan Mutu
           </h1>
           <h2 className="text-2xl font-medium text-center text-white/90">
-            {identity?.siteTagline || 'Universitas Satya Negara Indonesia'}
+            Universitas Satya Negara Indonesia
           </h2>
         </div>
       </div>
@@ -127,19 +93,11 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex w-16 h-16 bg-gradient-to-br from-[#0D93F2] to-[#0a7dd4] rounded-xl items-center justify-center shadow-lg mb-4 overflow-hidden">
-              {identity?.logoUrl ? (
-                <img
-                  src={identity.logoUrl}
-                  alt="Logo"
-                  className="w-full h-full object-contain p-1"
-                />
-              ) : (
-                <Shield className="h-10 w-10 text-white" />
-              )}
+            <div className="inline-flex w-16 h-16 bg-gradient-to-br from-[#0D93F2] to-[#0a7dd4] rounded-xl items-center justify-center shadow-lg mb-4">
+              <Shield className="h-10 w-10 text-white" />
             </div>
             <h1 className="text-xl font-bold text-foreground">Admin Panel</h1>
-            <p className="text-sm text-muted-foreground mt-1">{identity?.siteName || 'Badan Penjaminan Mutu'}</p>
+            <p className="text-sm text-muted-foreground mt-1">Badan Penjaminan Mutu</p>
           </div>
 
           {/* Back to Website */}

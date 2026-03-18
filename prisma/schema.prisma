@@ -51,37 +51,8 @@ model News {
   
   // Relations
   author        User?    @relation(fields: [authorId], references: [id])
-  tags          NewsTag[]
   
   @@map("news")
-}
-
-// Tags for News
-model Tag {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  slug        String    @unique
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Relations
-  news        NewsTag[]
-  
-  @@map("tags")
-}
-
-// Many-to-many relation between News and Tags
-model NewsTag {
-  newsId      String
-  tagId       String
-  assignedAt  DateTime  @default(now())
-  
-  // Relations
-  news        News      @relation(fields: [newsId], references: [id], onDelete: Cascade)
-  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  
-  @@id([newsId, tagId])
-  @@map("news_tags")
 }
 
 // Pengumuman
@@ -374,17 +345,11 @@ model WebsiteIdentity {
   siteDescription String?  // Deskripsi singkat untuk footer
   logoUrl         String?
   faviconUrl      String?
-  // Hero Section
-  heroTitle       String?  // Judul hero section
-  heroSubtitle    String?  // Subtitle/highlight hero section
-  heroDescription String?  // Deskripsi hero section
-  // Contact
   contactEmail    String?
   contactPhone    String?
   contactAddress  String?
   operationalHours String?
   googleMapsUrl   String?
-  // Social Media
   facebookUrl     String?
   instagramUrl    String?
   twitterUrl      String?

@@ -52,9 +52,6 @@ async function updateIdentity(request: NextRequest) {
           siteDescription: body.siteDescription || null,
           logoUrl: body.logoUrl || null,
           faviconUrl: body.faviconUrl || null,
-          heroTitle: body.heroTitle || null,
-          heroSubtitle: body.heroSubtitle || null,
-          heroDescription: body.heroDescription || null,
           contactEmail: body.contactEmail || null,
           contactPhone: body.contactPhone || null,
           contactAddress: body.contactAddress || null,
@@ -77,9 +74,6 @@ async function updateIdentity(request: NextRequest) {
       if (body.siteDescription !== undefined) updateData.siteDescription = body.siteDescription || null;
       if (body.logoUrl !== undefined) updateData.logoUrl = body.logoUrl || null;
       if (body.faviconUrl !== undefined) updateData.faviconUrl = body.faviconUrl || null;
-      if (body.heroTitle !== undefined) updateData.heroTitle = body.heroTitle || null;
-      if (body.heroSubtitle !== undefined) updateData.heroSubtitle = body.heroSubtitle || null;
-      if (body.heroDescription !== undefined) updateData.heroDescription = body.heroDescription || null;
       if (body.contactEmail !== undefined) updateData.contactEmail = body.contactEmail || null;
       if (body.contactPhone !== undefined) updateData.contactPhone = body.contactPhone || null;
       if (body.contactAddress !== undefined) updateData.contactAddress = body.contactAddress || null;

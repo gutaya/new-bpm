@@ -216,6 +216,18 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-6">
             <Link
+              href="#"
+              className="text-sm text-primary-foreground/60 hover:text-[#D9F3FC] transition-colors"
+            >
+              Kebijakan Privasi
+            </Link>
+            <Link
+              href="#"
+              className="text-sm text-primary-foreground/60 hover:text-[#D9F3FC] transition-colors"
+            >
+              Syarat & Ketentuan
+            </Link>
+            <Link
               href="/admin/login"
               className="text-sm text-primary-foreground/60 hover:text-[#D9F3FC] transition-colors"
             >

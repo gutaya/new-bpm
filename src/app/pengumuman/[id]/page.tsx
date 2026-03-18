@@ -18,8 +18,10 @@ import {
   Twitter, 
   Linkedin, 
   MessageCircle,
+  Clock,
   ChevronRight,
   Megaphone,
+  Tag,
   ArrowRight,
   Printer,
   FileDown,
@@ -89,25 +91,27 @@ export default function PengumumanDetailPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
-    // Use UTC to avoid timezone differences between server and client
-    const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-    const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 
-                    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-    const dayName = days[date.getDay()];
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    return `${dayName}, ${day} ${month} ${year}`;
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
   };
 
   const formatShortDate = (dateString: string) => {
     const date = new Date(dateString);
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 
-                    'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
-    const day = date.getDate();
-    const month = months[date.getMonth()];
-    const year = date.getFullYear();
-    return `${day} ${month} ${year}`;
+    return date.toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
+  const estimateReadTime = (content: string) => {
+    const text = content.replace(/<[^>]*>/g, '');
+    const words = text.split(/\s+/).length;
+    const minutes = Math.ceil(words / 200);
+    return minutes;
   };
 
   const getPriorityBadge = (priority: string) => {
@@ -227,19 +231,20 @@ export default function PengumumanDetailPage() {
         <body>
           <div class="logo">
             <h2>BPM USNI</h2>
-            <p>Badan Penjaminan Mutu - Universitas Satya Negara Indonesia</p>
+            <p>Badan Penjaminan Mutu - Universitas Suryakancana</p>
           </div>
           <span class="priority priority-${announcement.priority}">${priorityInfo.label}</span>
           <h1>${announcement.title}</h1>
           <div class="meta">
             <span>📅 ${formatDate(announcement.publishedAt || announcement.createdAt)}</span>
             <span>👤 Admin BPM</span>
+            <span>⏱️ ${estimateReadTime(announcement.content)} menit baca</span>
           </div>
           <div class="content">
             ${announcement.content}
           </div>
           <div class="footer">
-            <p>© ${new Date().getFullYear()} BPM USNI - Badan Penjaminan Mutu Universitas Satya Negara Indonesia</p>
+            <p>© ${new Date().getFullYear()} BPM USNI - Badan Penjaminan Mutu Universitas Suryakancana</p>
             <p>Dokumen ini diunduh dari ${shareUrl}</p>
           </div>
         </body>
@@ -372,6 +377,10 @@ export default function PengumumanDetailPage() {
                           <span>Admin BPM</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-primary" />
+                          <span>{estimateReadTime(announcement.content)} menit baca</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <Eye className="h-4 w-4 text-primary" />
                           <span>{announcement.viewCount} views</span>
                         </div>
@@ -441,6 +450,19 @@ export default function PengumumanDetailPage() {
                       className="prose prose-lg max-w-none text-foreground"
                       dangerouslySetInnerHTML={{ __html: announcement.content }} 
                     />
+
+                    {/* Tags Section */}
+                    <div className="mt-8 pt-6 border-t">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Tag className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-muted-foreground">Tags:</span>
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant="outline" className="text-xs">Pengumuman</Badge>
+                          <Badge variant="outline" className="text-xs">BPM USNI</Badge>
+                          <Badge variant="outline" className="text-xs">Informasi</Badge>
+                        </div>
+                      </div>
+                    </div>
                 </CardContent>
               </Card>
 

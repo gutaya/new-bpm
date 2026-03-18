@@ -37,7 +37,7 @@ const nextConfig: NextConfig = {
   
   // Environment variables exposed to the browser
   env: {
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://10.8.0.1:2018',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:2018',
   },
 };
 
